@@ -22,8 +22,11 @@ fi
 : "
 python3 manage.py shell
 
+
 from django.contrib.auth.models import User
 from symptoms import models
+from symptoms import utils
+
 
 testAgency = models.Agency(name='test')
 testAgency.save()
@@ -31,18 +34,38 @@ testAgency.save()
 me = User(username='stefan')
 me.save()
 
+
 testTherapist = models.Therapist(user=me)
 testTherapist.save()
-testTherapist.agencies.add(testAgency)
-testTherapist.save()
+testTherapist.addAgency(testAgency)
+
 
 testClient = models.Client(user=me)
 testClient.save()
-testClient.therapists.add(testTherapist)
+testClient.therapist = testTherapist
 testClient.save()
 
-session = testTherapist.createSession(testClient)
 
-symptom = session.createSymptom(name='gas',rank=8)
+testTherapist.addSymptom(testClient, 'barfing')
+testTherapist.addSymptom(testClient, 'diaphoretic')
+testTherapist.addSymptom(testClient, 'chest_pain')
+testTherapist.addSymptom(testClient, 'nausea')
+
+session = testTherapist.createSession(testAgency, testClient)
+
+
+
+user = utils.getUserByUsername('stefan')
+user.client.recordSymptom('barfing', 8)
+user.client.recordSymptom('diaphoretic', 4)
+user.client.recordSymptom('chest_pain', 2)
+user.client.recordSymptom('nausea', 7)
+
+
+
+user.client.getSymptoms()
+user.client.getHistory()
+
+
 
 "
