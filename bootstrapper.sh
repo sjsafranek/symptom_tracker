@@ -28,43 +28,53 @@ from symptoms import models
 from symptoms import utils
 
 
-testAgency = models.Agency(name='test')
-testAgency.save()
+agency = models.Agency(name='test')
+agency.save()
 
 me = User(username='stefan')
 me.save()
 
+therapist = models.Therapist(user=me)
+therapist.save()
+therapist.addAgency(agency)
 
-testTherapist = models.Therapist(user=me)
-testTherapist.save()
-testTherapist.addAgency(testAgency)
-
-
-testClient = models.Client(user=me)
-testClient.save()
-testClient.therapist = testTherapist
-testClient.save()
-
-
-testTherapist.addSymptom(testClient, 'barfing')
-testTherapist.addSymptom(testClient, 'diaphoretic')
-testTherapist.addSymptom(testClient, 'chest_pain')
-testTherapist.addSymptom(testClient, 'nausea')
-
-session = testTherapist.createSession(testAgency, testClient)
+client = models.Client(user=me)
+client.save()
+client.therapist = therapist
+client.save()
 
 
 
-user = utils.getUserByUsername('stefan')
-user.client.recordSymptom('barfing', 8)
-user.client.recordSymptom('diaphoretic', 4)
-user.client.recordSymptom('chest_pain', 2)
-user.client.recordSymptom('nausea', 7)
+
+
+therapist.addSymptom(client, 'barfing')
+therapist.addSymptom(client, 'diaphoretic')
+therapist.addSymptom(client, 'chest_pain')
+therapist.addSymptom(client, 'nausea')
+
+
+therapist.createSession(agency, client)
 
 
 
-user.client.getSymptoms()
-user.client.getHistory()
+client.recordSymptom('barfing', 8)
+client.recordSymptom('diaphoretic', 4)
+client.recordSymptom('chest_pain', 2)
+client.recordSymptom('nausea', 7)
+
+
+
+client.getSymptoms()
+client.getHistory()
+
+
+
+
+client.recordSymptom('barfing', 4)
+client.recordSymptom('diaphoretic', 1)
+client.recordSymptom('chest_pain', 3)
+client.recordSymptom('nausea', 4)
+
 
 
 

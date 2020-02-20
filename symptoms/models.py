@@ -17,19 +17,17 @@ from django.contrib.auth.models import User
 class Agency(models.Model):
     agency_id = AutoField(primary_key=True)
     name = CharField(max_length=50)
-    is_deleted = BooleanField(default=False)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Agencies"
 
     def getTherapists(self):
         return self.therapist_set.all()
 
     def __str__(self):
-        return self.name
-
-    def delete(self):
-        self.is_deleted = True
-        self.save()
+        return '{0}_{1}'.format(self.agency_id, self.name)
 
 
 
@@ -38,16 +36,14 @@ class Therapist(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     agencies = models.ManyToManyField(Agency, blank=True)
     therapist_id = AutoField(primary_key=True)
-    is_deleted = BooleanField(default=False)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return self.user.username
+    class Meta:
+        verbose_name_plural = "Therapists"
 
-    def delete(self):
-        self.is_deleted = True
-        self.save()
+    def __str__(self):
+        return '{0}_{1}'.format(self.therapist_id, self.user.username)
 
     def addAgency(self, agency):
         self.agencies.add(agency)
@@ -65,33 +61,50 @@ class Therapist(models.Model):
     def hasClient(self, client):
         return client in self.getClients()
 
-    # normalize data...
-    # dedupe symptoms for a session
-    # if a session lacks a symptom from a previous session carry the value forward
     def createSession(self, agency, client):
-        if self.hasAgency(agency) and self.hasClient(client):
-            current = client.getCurrentSession()
-            session = Session(client=client, agency=agency, therapist=self)
-            session.save()
-            if current:
-                for symptom in current.getSymptoms():
-                    symptom = Symptom(session=session, name=symptom.name, rank=symptom.rank)
-                    symptom.save()
-            return session
-        return None
+        # check permissions
+        if not self.hasAgency(agency):
+            raise ValueError("Insufficient permissions to access agency: {0}", agency.name)
 
-    def getAllSessions(self):
-        return self.session_set.all()
+        elif not self.hasClient(client):
+            raise ValueError("Insufficient permissions to access client: {0}", client.user.username)
 
-    # normalize data...
-    # dedupe symptoms for a session
-    # if a session lacks a symptom from a previous session carry the value forward
-    def addSymptom(self, client, symptomName):
-        if self.hasClient(client) and symptomName not in client.getSymptoms():
-            for session in client.getAllSessions():
-                symptom = Symptom(session=session, name=symptomName, rank=None)
-                symptom.save()
-        return None
+        # get current client session
+        current = client.getSession()
+
+        # Prevent new session from being created unless all symptom values are populated
+        if not current.isCompleted():
+            raise ValueError("Unable to create session. Current session is not completed")
+
+        # create new session and symptom records
+        session = Session(client=client, agency=agency, therapist=self)
+        session.save()
+
+        # normalize data
+        for symptom in client.getSymptoms():
+            score = SymptomScore(session=session, symptom=symptom, rank=None)
+            score.save()
+
+        # return new session
+        return session
+
+    def addSymptom(self, client, name):
+        # check permissions
+        if not self.hasClient(client):
+            raise ValueError("Insufficient permissions to access client: {0}", client.user.username)
+
+        # check if symptom exists
+        if client.hasSymptom(name):
+            raise ValueError("Symptom already exists: {0}", name)
+
+        # create new symptom
+        symptom = ClientSymptom(client=client, name=name)
+        symptom.save()
+
+        # normalize symptom data accross past sessions
+        for session in client.getSessions():
+            score = SymptomScore(session=session, symptom=symptom, rank=None)
+            score.save()
 
 
 
@@ -112,54 +125,68 @@ class Client(models.Model):
         default=1,
         validators=[MinValueValidator(1), MaxValueValidator(150)]
     )
-    is_deleted = BooleanField(default=False)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name_plural = "Clients"
+
     def __str__(self):
-        return self.user.username
+        return '{0}_{1}'.format(self.client_id, self.user.username)
 
-    def delete(self):
-        self.is_deleted = True
-        self.save()
-
-    def getAllSessions(self):
+    def getSessions(self):
         return self.session_set.all()
 
-    def getCurrentSession(self):
+    def getSession(self):
         return self.session_set.last()
 
     def getSymptoms(self):
-        return list(set(
-            chain.from_iterable([
-                [
-                    symptom.name for symptom in session.getSymptoms()
-                ] for session in self.getAllSessions()
-            ])
-        ))
+        return self.clientsymptom_set.all()
 
-    def recordSymptom(self, name, rank):
-        session = self.getCurrentSession()
-        if session:
-            for symptom in session.getSymptoms():
-                if name == symptom.name:
-                    symptom.rank = rank
-                    symptom.save()
-                    return symptom
+    def getSymptom(self, name):
+        for symptom in self.getSymptoms():
+            if name == symptom.name:
+                return symptom
         return None
 
+    def hasSymptom(self, name):
+        return None != self.getSymptom(name)
+
+    def recordSymptom(self, name, rank):
+        session = self.getSession()
+        if session:
+            for symptom_score in session.getSymptoms():
+                if name == symptom_score.symptom.name:
+                    symptom_score.rank = rank
+                    symptom_score.save()
+                    return None
+        raise ValueError("Symptom not found: {0}", name)
+
     def getHistory(self):
-        history = [
+        return [
         	{
     			'session_id': session.session_id,
     			'timestamp': session.created_at.timestamp(),
                 'symptoms': {
-            		symptom.name: symptom.rank
-            		for symptom in session.getSymptoms()
+            		symptom_score.symptom.name: symptom_score.rank
+            		for symptom_score in session.getSymptoms()
             	}
-            } for session in self.getAllSessions()
+            } for session in self.getSessions()
         ]
-        return history
+
+
+
+class ClientSymptom(models.Model):
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    created_at = DateTimeField(auto_now_add=True)
+    updated_at = DateTimeField(auto_now=True)
+    class Meta:
+        unique_together = ('client', 'name')
+        verbose_name_plural = "Client Symptoms"
+
+    def __str__(self):
+        return '{0}_{1}'.format(self.client.client_id, self.name)
 
 
 
@@ -169,24 +196,39 @@ class Session(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     session_id = AutoField(primary_key=True)
     note = TextField(null=True)
-    is_deleted = BooleanField(default=False)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name_plural = "Sessions"
+
+    def __str__(self):
+        return '{0}_{1}_{2}'.format(self.session_id, self.client.client_id, self.therapist.therapist_id)
+
     def getSymptoms(self):
-        return self.symptom_set.all()
+        return self.symptomscore_set.all()
 
-    def delete(self):
-        self.is_deleted = True
-        self.save()
+    def isCompleted(self):
+        for score in self.getSymptoms():
+            if not score.rank:
+                return False
+        return True
 
 
 
-class Symptom(models.Model):
+class SymptomScore(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-    name = models.CharField(max_length=50)
+    symptom = models.ForeignKey(ClientSymptom, on_delete=models.CASCADE)
     rank = IntegerField(
         null=True,
-        # default=0,
+        default=None,
         validators=[MinValueValidator(0), MaxValueValidator(10)]
     )
+    created_at = DateTimeField(auto_now_add=True)
+    updated_at = DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Symptom Scores"
+
+    def __str__(self):
+        return '{0}_{1}'.format(self.session.session_id, self.symptom.name)
