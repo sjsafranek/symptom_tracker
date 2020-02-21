@@ -29,7 +29,15 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
+# https://django-guardian.readthedocs.io/en/stable/configuration.html
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend', # this is default
+    # 'guardian.backends.ObjectPermissionBackend',
+)
+
 INSTALLED_APPS = [
+     # https://django-guardian.readthedocs.io/en/stable/configuration.html
+    #'guardian',
     'symptoms.apps.SymptomsConfig',
     'django.contrib.admin',
     'django.contrib.auth',

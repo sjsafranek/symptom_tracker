@@ -8,15 +8,19 @@ from django.db.models import AutoField
 from django.db.models import CharField
 from django.db.models import IntegerField
 from django.db.models import TextField
+from django.db.models import DecimalField
 from django.core.validators import MinValueValidator
 from django.core.validators import MaxValueValidator
 from django.contrib.auth.models import User
+# from guardian.shortcuts import assign_perm
 
 
 
 class Agency(models.Model):
     agency_id = AutoField(primary_key=True)
     name = CharField(max_length=50)
+    # address
+    # phonenumber
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
@@ -27,7 +31,7 @@ class Agency(models.Model):
         return self.therapist_set.all()
 
     def __str__(self):
-        return '{0}_{1}'.format(self.agency_id, self.name)
+        return 'A{0}-{1}'.format(self.agency_id, self.name)
 
 
 
@@ -43,7 +47,7 @@ class Therapist(models.Model):
         verbose_name_plural = "Therapists"
 
     def __str__(self):
-        return '{0}_{1}'.format(self.therapist_id, self.user.username)
+        return 'T{0}U{1}'.format(self.therapist_id, self.user.alias())
 
     def addAgency(self, agency):
         self.agencies.add(agency)
@@ -61,37 +65,16 @@ class Therapist(models.Model):
     def hasClient(self, client):
         return client in self.getClients()
 
-    def createSession(self, agency, client):
-        # check permissions
-        if not self.hasAgency(agency):
-            raise ValueError("Insufficient permissions to access agency: {0}", agency.name)
+    def createSession(self, client):
+        if not self.hasClient(client):
+            raise ValueError("Insufficient permissions to access client: {0}", client)
 
-        elif not self.hasClient(client):
-            raise ValueError("Insufficient permissions to access client: {0}", client.user.username)
-
-        # get current client session
-        current = client.getSession()
-
-        # Prevent new session from being created unless all symptom values are populated
-        if not current.isCompleted():
-            raise ValueError("Unable to create session. Current session is not completed")
-
-        # create new session and symptom records
-        session = Session(client=client, agency=agency, therapist=self)
-        session.save()
-
-        # normalize data
-        for symptom in client.getSymptoms():
-            score = SymptomScore(session=session, symptom=symptom, rank=None)
-            score.save()
-
-        # return new session
-        return session
+        return Session.create(therapist=self, client=client)
 
     def addSymptom(self, client, name):
         # check permissions
         if not self.hasClient(client):
-            raise ValueError("Insufficient permissions to access client: {0}", client.user.username)
+            raise ValueError("Insufficient permissions to access client: {0}", client)
 
         # check if symptom exists
         if client.hasSymptom(name):
@@ -102,7 +85,8 @@ class Therapist(models.Model):
         symptom.save()
 
         # normalize symptom data accross past sessions
-        for session in client.getSessions():
+        # for session in client.getSessions():
+        for session in client.sessions:
             score = SymptomScore(session=session, symptom=symptom, rank=None)
             score.save()
 
@@ -125,6 +109,8 @@ class Client(models.Model):
         default=1,
         validators=[MinValueValidator(1), MaxValueValidator(150)]
     )
+    # birthday
+    # phonenumber
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
@@ -132,19 +118,22 @@ class Client(models.Model):
         verbose_name_plural = "Clients"
 
     def __str__(self):
-        return '{0}_{1}'.format(self.client_id, self.user.username)
+        return 'C{0}U{1}'.format(self.client_id, self.user.alias())
 
-    def getSessions(self):
+    @property
+    def sessions(self):
         return self.session_set.all()
 
-    def getSession(self):
+    @property
+    def session(self):
         return self.session_set.last()
 
-    def getSymptoms(self):
+    @property
+    def symptoms(self):
         return self.clientsymptom_set.all()
 
     def getSymptom(self, name):
-        for symptom in self.getSymptoms():
+        for symptom in self.symptoms:
             if name == symptom.name:
                 return symptom
         return None
@@ -153,9 +142,8 @@ class Client(models.Model):
         return None != self.getSymptom(name)
 
     def recordSymptom(self, name, rank):
-        session = self.getSession()
-        if session:
-            for symptom_score in session.getSymptoms():
+        if self.session:
+            for symptom_score in self.session.symptoms:
                 if name == symptom_score.symptom.name:
                     symptom_score.rank = rank
                     symptom_score.save()
@@ -169,9 +157,9 @@ class Client(models.Model):
     			'timestamp': session.created_at.timestamp(),
                 'symptoms': {
             		symptom_score.symptom.name: symptom_score.rank
-            		for symptom_score in session.getSymptoms()
+                    for symptom_score in session.symptoms
             	}
-            } for session in self.getSessions()
+            } for session in self.sessions
         ]
 
 
@@ -186,12 +174,11 @@ class ClientSymptom(models.Model):
         verbose_name_plural = "Client Symptoms"
 
     def __str__(self):
-        return '{0}_{1}'.format(self.client.client_id, self.name)
+        return 'CS{0}-{1}'.format(self.client.client_id, self.name)
 
 
 
 class Session(models.Model):
-    agency = models.ForeignKey(Agency, null=True, on_delete=models.SET_NULL)
     therapist = models.ForeignKey(Therapist, null=True, on_delete=models.SET_NULL)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     session_id = AutoField(primary_key=True)
@@ -203,13 +190,35 @@ class Session(models.Model):
         verbose_name_plural = "Sessions"
 
     def __str__(self):
-        return '{0}_{1}_{2}'.format(self.session_id, self.client.client_id, self.therapist.therapist_id)
+        return 'S{0}-{1}'.format(self.session_id, self.client)
 
-    def getSymptoms(self):
+    @classmethod
+    def create(cls, therapist, client):
+        oldSession = client.session
+
+        # Prevent new session from being created unless all symptom values are populated
+        if oldSession and not oldSession.complete:
+            raise ValueError("Unable to create session. Current session is not completed")
+
+        # create new session and symptom records
+        newSession = cls(client=client, therapist=therapist)
+        newSession.save()
+
+        # normalize data
+        for symptom in client.symptoms:
+            score = SymptomScore(session=newSession, symptom=symptom, rank=None)
+            score.save()
+
+        # return new session
+        return newSession
+
+    @property
+    def symptoms(self):
         return self.symptomscore_set.all()
 
-    def isCompleted(self):
-        for score in self.getSymptoms():
+    @property
+    def complete(self):
+        for score in self.symptoms:
             if not score.rank:
                 return False
         return True
@@ -231,4 +240,48 @@ class SymptomScore(models.Model):
         verbose_name_plural = "Symptom Scores"
 
     def __str__(self):
-        return '{0}_{1}'.format(self.session.session_id, self.symptom.name)
+        return 'SS{0}-{1}'.format(self.session.session_id, self.symptom)
+
+
+
+class NeurofeedbackProtocols(models.Model):
+    session = models.ForeignKey(Session, on_delete=models.CASCADE)
+
+    ILF_site = models.CharField(
+        null=True,
+        default=None,
+        max_length=8,
+        choices=[
+            ("T3-T4", "T3-T4"),
+            ("T4-P4", "T4-P4"),
+            ("T4-FP2", "T4-FP2"),
+            ("T3-FP1", "T3-T4"),
+            ("T3-03", "T3-T4"),
+            ("T4-02", "T3-T4"),
+            ("T4-F6", "T3-T4"),
+            ("T4-F8", "T3-T4"),
+            ("T3-F7", "T3-T4"),
+            ("T3-F3", "T3-T4"),
+            ("T3-T5", "T3-T4"),
+            ("T3-01", "T3-T4"),
+            ("FP1-FP2", "T3-T4"),
+            ("P3-P4", "T3-T4"),
+            ("01-01", "T3-T4"),
+            ("FP1-P3/FP2-P4", "FP1-P3/FP2-P4"),
+            ("F3-P3/F4-P4", "F3-P3/F4-P4"),
+            ("T3-P3/T4-P4", "T3-P3/T4-P4")
+        ]
+    )
+
+    ILF_frequency = models.DecimalField(
+                            null=True,
+                            max_digits=2,
+                            decimal_places=5,
+                            default=None,
+                            validators=[MinValueValidator(0.0001), MaxValueValidator(40.0000)])
+
+    # SYN_site
+    # SYN_frequency
+
+    created_at = DateTimeField(auto_now_add=True)
+    updated_at = DateTimeField(auto_now=True)

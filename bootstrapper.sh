@@ -53,7 +53,7 @@ therapist.addSymptom(client, 'chest_pain')
 therapist.addSymptom(client, 'nausea')
 
 
-therapist.createSession(agency, client)
+therapist.createSession(client)
 
 
 
@@ -75,6 +75,13 @@ client.recordSymptom('diaphoretic', 1)
 client.recordSymptom('chest_pain', 3)
 client.recordSymptom('nausea', 4)
 
+
+
+
+
+from symptoms import utils
+me = utils.getUserByUsername('stefan')
+me.therapist.createSession(me.client)
 
 
 
