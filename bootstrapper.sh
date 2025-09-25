@@ -1,16 +1,15 @@
 #!/bin/bash
-set +x
-
-rm credentials.ini
-rm db.sqlite3
+#set +x
+#rm credentials.ini
+#rm db.sqlite3
 rm symptoms/migrations/00*.py
-python3 manage.py makemigrations
-python3 manage.py migrate
+python manage.py makemigrations
+python manage.py migrate
 
 # create admin user
 if [ ! -f "`pwd`/credentials.ini" ]; then
 	echo "Creating admin user..."
-	echo "from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@monsters.com', 'dev')" | python3 manage.py shell
+	echo "from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@tracker.com', 'dev')" | python manage.py shell
 	echo "[credentials]
 username: admin
 password: dev" >> credentials.ini
