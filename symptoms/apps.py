@@ -17,12 +17,3 @@ class SymptomsConfig(AppConfig):
             return None != self.therapist
         UserModel.add_to_class('isTherapist', _isTherapist)
 
-        def _alias(self):
-            fn = ''
-            if self.first_name:
-                fn = self.first_name[0].upper()
-            ln = ''
-            if self.last_name:
-                ln = self.last_name[0].upper()
-            return '{0}{1}{2}'.format( self.id, fn, ln )
-        UserModel.add_to_class('alias', _alias)
