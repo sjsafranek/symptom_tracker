@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
             name='SymptomCategory',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', symptoms.models.LowerCaseCharField(max_length=50, unique=True)),
+                ('name', symptoms.models.custom_fields.LowerCaseCharField(max_length=50, unique=True)),
             ],
             options={
                 'verbose_name_plural': 'Symptom Categories',
