@@ -31,7 +31,6 @@ class LowerCaseCharField(CharField):
 class Therapist(models.Model):
     # Extending User Model Using a One-To-One Link
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    therapist_id = AutoField(primary_key=True)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
@@ -53,7 +52,6 @@ class Therapist(models.Model):
 
 
 class SymptomCategory(models.Model):
-    category_id = AutoField(primary_key=True)
     name = LowerCaseCharField(max_length=50, unique=True)
     
     class Meta:
@@ -69,7 +67,6 @@ class Client(models.Model):
     ##user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     therapist = models.ForeignKey(Therapist, null=True, on_delete=models.SET_NULL)
-    client_id = AutoField(primary_key=True)
     
     ## Demographic info
     gender = models.CharField(
@@ -162,7 +159,6 @@ class ClientSymptom(models.Model):
 
 
 class ClientNote(models.Model):
-    note_id = AutoField(primary_key=True)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     therapist = models.ForeignKey(Therapist, null=True, on_delete=models.SET_NULL)
     note = models.TextField(blank=False, null=False)
@@ -185,7 +181,6 @@ class ClientNote(models.Model):
 
 
 class ClientSession(models.Model):
-    session_id = AutoField(primary_key=True)
     client = models.ForeignKey(Client, null=True, on_delete=models.CASCADE)    
     therapist = models.ForeignKey(Therapist, null=True, on_delete=models.SET_NULL)
     date = models.DateField()
@@ -199,12 +194,24 @@ class ClientSession(models.Model):
     def __str__(self):
         return '{0} {1}'.format(self.date, self.client)
 
+    @property
+    def number(self):
+        if self.no_show:
+            return None
+        c=0
+        for session in self.client.clientsession_set.filter(no_show=False).order_by('date'):
+            print(session)
+            if self.id == session.id:
+                return c
+            c += 1
+        return None
+
 
 
 class ClientSessionSymptomScore(models.Model):
     session = models.ForeignKey(ClientSession, null=False, on_delete=models.CASCADE)
     symptom = models.ForeignKey(ClientSymptom, null=False, on_delete=models.CASCADE)
-    rank = IntegerField(
+    score = IntegerField(
         null=True,
         default=None,
         validators=[MinValueValidator(0), MaxValueValidator(10)]
@@ -259,10 +266,7 @@ class ClientSessionSymptomScore(models.Model):
 
 
 
-
-
-
-class ClientSessionProtocolSiteTrainingILF(models.Model):
+class ClientSessionProtocolSiteTraining(models.Model):
     session = models.ForeignKey(ClientSession, null=False, on_delete=models.CASCADE)
     site = models.CharField(
             max_length=32,
@@ -275,6 +279,15 @@ class ClientSessionProtocolSiteTrainingILF(models.Model):
             null=False,
             validators=[MinValueValidator(0), MaxValueValidator(120)]
         )
+    created_at = DateTimeField(auto_now_add=True)
+    updated_at = DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+
+class ClientSessionProtocolSiteTrainingILF(ClientSessionProtocolSiteTraining):
     frequency_millihertz = models.DecimalField(
             max_digits=11, 
             decimal_places=6, 
@@ -282,27 +295,14 @@ class ClientSessionProtocolSiteTrainingILF(models.Model):
             null=True,
             validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
         )
-    created_at = DateTimeField(auto_now_add=True)
-    updated_at = DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name_plural = "Client Session Protocol Site Training - ILF"
+        verbose_name = "Session Protocol Site - ILF"
+        verbose_name_plural = "Session Protocol Site - ILF"
 
 
 
-class ClientSessionProtocolSiteTrainingAlphaTheta(models.Model):
-    session = models.ForeignKey(ClientSession, null=False, on_delete=models.CASCADE)
-    site = models.CharField(
-            max_length=32,
-            choices=[
-                ("Unknown", "Unknown")
-            ],
-            default='Unknown'
-        )
-    duration_minutes = IntegerField(
-            null=False,
-            validators=[MinValueValidator(0), MaxValueValidator(120)]
-        )    
+class ClientSessionProtocolSiteTrainingAlphaTheta(ClientSessionProtocolSiteTraining):   
     alpha_frequency_hertz = models.DecimalField(
             max_digits=11, 
             decimal_places=6, 
@@ -317,27 +317,13 @@ class ClientSessionProtocolSiteTrainingAlphaTheta(models.Model):
             null=True,
             validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
         )
-    created_at = DateTimeField(auto_now_add=True)
-    updated_at = DateTimeField(auto_now=True)
-
     class Meta:
-        verbose_name_plural = "Client Session Protocol Site Training - AlphaTheta"
+        verbose_name = "Session Protocol Site - AlphaTheta"
+        verbose_name_plural = "Session Protocol Site - AlphaTheta"
 
 
 
-class ClientSessionProtocolSiteTrainingFrequencyBand(models.Model):
-    session = models.ForeignKey(ClientSession, null=False, on_delete=models.CASCADE)
-    site = models.CharField(
-            max_length=32,
-            choices=[
-                ("Unknown", "Unknown")
-            ],
-            default='Unknown'
-        )
-    duration_minutes = IntegerField(
-            null=False,
-            validators=[MinValueValidator(0), MaxValueValidator(120)]
-        )
+class ClientSessionProtocolSiteTrainingFrequencyBand(ClientSessionProtocolSiteTraining):
     frequency_hertz = models.DecimalField(
             max_digits=11, 
             decimal_places=6, 
@@ -345,27 +331,14 @@ class ClientSessionProtocolSiteTrainingFrequencyBand(models.Model):
             null=True,
             validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
         )
-    created_at = DateTimeField(auto_now_add=True)
-    updated_at = DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name_plural = "Client Session Protocol Site Training - FrequencyBand"
+        verbose_name = "Session Protocol Site - FrequencyBand"
+        verbose_name_plural = "Session Protocol Site - FrequencyBand"
 
 
 
-class ClientSessionProtocolSiteTrainingSynchrony(models.Model):
-    session = models.ForeignKey(ClientSession, null=False, on_delete=models.CASCADE)
-    site = models.CharField(
-            max_length=32,
-            choices=[
-                ("Unknown", "Unknown")
-            ],
-            default='Unknown'
-        )
-    duration_minutes = IntegerField(
-            null=False,
-            validators=[MinValueValidator(0), MaxValueValidator(120)]
-        )
+class ClientSessionProtocolSiteTrainingSynchrony(ClientSessionProtocolSiteTraining):
     frequency_millihertz = models.DecimalField(
             max_digits=11, 
             decimal_places=6, 
@@ -373,9 +346,8 @@ class ClientSessionProtocolSiteTrainingSynchrony(models.Model):
             null=True,
             validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
         )
-    created_at = DateTimeField(auto_now_add=True)
-    updated_at = DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name_plural = "Client Session Protocol Site Training - Synchrony"
+        verbose_name = "Session Protocol Site - Synchrony"
+        verbose_name_plural = "Session Protocol Site - Synchrony"
 
