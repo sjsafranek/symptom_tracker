@@ -77,3 +77,6 @@ class Client(models.Model):
     def symptoms(self):
         return self.clientsymptom_set.all()
 
+    # @property
+    # def is_active(self):
+    #     return self.user.is_active
