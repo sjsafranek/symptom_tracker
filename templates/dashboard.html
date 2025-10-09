@@ -70,7 +70,7 @@
           <table id="protocols" class="table table-bordered table-hover table-sm">
             <thead>
               <tr>
-                <th class='text-center'>number</th>
+                <!-- <th class='text-center'>number</th> -->
                 <th class='text-center'>ILF</th>
                 <th class='text-center'>A/T</th>
                 <th class='text-center'>Synch</th>
@@ -81,15 +81,7 @@
             <tbody>
               <tr class='table-secondary'>
                 <td>&nbsp;</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-              </tr>
-              <tr class='table-secondary'>
-                <td>&nbsp;</td>
-                <td></td>
+                <!-- <td></td> -->
                 <td></td>
                 <td></td>
                 <td></td>
@@ -97,7 +89,7 @@
               </tr>
               <tr class='table-secondary'>
                 <td>&nbsp;</td>
-                <td></td>
+                <!-- <td></td> -->
                 <td></td>
                 <td></td>
                 <td></td>
@@ -105,7 +97,15 @@
               </tr>
               <tr class='table-secondary'>
                 <td>&nbsp;</td>
+                <!-- <td></td> -->
                 <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr class='table-secondary'>
+                <td>&nbsp;</td>
+                <!-- <td></td> -->
                 <td></td>
                 <td></td>
                 <td></td>
@@ -419,7 +419,7 @@
             rows.push(
               $('<tr>').attr('session-id', dataset.sessions[date].id).append(
                 // $('<td>').append(date),
-                $('<td>').addClass('text-center').append(dataset.sessions[date].number),
+                // $('<td>').addClass('text-center').append(dataset.sessions[date].number),
                 ...UI.makeProtocolColumns(dataset.sessions[date].id)
               )
             );
@@ -438,6 +438,37 @@
 
     let client_id = '{{ client.id|escapejs }}';
 
+
+    //.BEGIN
+    let $canvas = $('<canvas id="canvas"></canvas>');
+    let canvas = $canvas.get(0);
+    let ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+        // Set canvas dimensions to match the window's inner dimensions
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Optional: Handle high-resolution screens (Retina displays)
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        ctx.scale(dpr, dpr);
+
+        // Redraw your canvas content here after resizing
+        // For example: drawContent();
+    }
+
+    // Call the resize function initially to set the canvas size on load
+    resizeCanvas();
+
+    // Add an event listener to dynamically adjust canvas size on window resize
+    window.addEventListener('resize', resizeCanvas);
+
+    $('body').prepend($canvas);
+    //.END
+
+
     Promise.all([
       Api.fetchSymptomsByClient(client_id),
       Api.fetchSessionsByClient(client_id)
@@ -450,24 +481,38 @@
         App.renderProtocolTable(dataset)
       ])
       .then(() => {
-        // attach listeners
+       
+         // attach listeners
         $('tr').on('mouseenter', function(event) {
           let $el = $(this);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
           $('tr').removeClass('highlight')
           let sessionId = $el.attr('session-id');
           if (sessionId) {
             $(`tr[session-id="${sessionId}"]`).addClass('highlight');
+
+            // Draw indicator on canvas
+            let left = $(`#tracking tr[session-id="${sessionId}"]`).get(0).getBoundingClientRect();
+            let right = $(`#protocols tr[session-id="${sessionId}"]`).get(0).getBoundingClientRect();
+            ctx.beginPath();
+            ctx.strokeStyle = "#e2e3e5";
+            ctx.lineWidth = 3;
+            ctx.moveTo(left.right, left.top);
+            ctx.lineTo(right.left, right.top);
+            ctx.lineTo(right.left, right.bottom);
+            ctx.lineTo(left.right, left.bottom);     
+            ctx.closePath(); // Close the triangle
+            ctx.fillStyle = "#e2e3e5";
+            ctx.fill(); // Fill the triangle
           }
         });
 
         $('table').on('mouseleave', function(event) {
           $('tr').removeClass('highlight');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
+      
       });
-
-      // draw lines between rows
-      // let $canvas = $('<canvas id="canvas"></canvas>');
-      // $('body').prepend($canvas);
 
     });
 
