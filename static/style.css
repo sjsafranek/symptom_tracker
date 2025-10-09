@@ -1,0 +1,23 @@
+
+main {
+  padding-top: 80px;
+}
+
+.progress {
+  border-radius: 0px;
+}
+
+td {
+  vertical-align: middle;
+}
+
+.btn-protocol {
+  --bs-btn-padding-y: .25rem; 
+  --bs-btn-padding-x: .5rem; 
+  --bs-btn-font-size: .75rem;
+  cursor: pointer;
+}
+
+tr.highlight {
+    background-color: rgba(var(--dt-row-hover), 0.052) !important;
+}
