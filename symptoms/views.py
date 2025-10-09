@@ -11,6 +11,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 
 from .models import Therapist
+from .models import Client
 from .models import ClientSession
 from .models import ClientSymptom
 from .models import ClientSessionProtocolSiteTrainingILF
@@ -26,6 +27,19 @@ def dashboard(request):
         'dashboard.html', 
         { 
             'therapists': Therapist.objects.all().order_by('user__last_name', 'user__first_name')
+        }
+    )
+
+@login_required(login_url='/accounts/login/')
+def client_dashboard(request, client_id):
+    client = Client.objects.get(id=client_id)
+    return render(
+        request, 
+        'dashboard.html', 
+        { 
+            'client': {
+                'id': client.id
+            }
         }
     )
 

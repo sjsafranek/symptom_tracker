@@ -6,50 +6,10 @@
 
 {% block stylesheet %}
 
-<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-
 <style>
   
   main {
     padding-top: 80px;
-  }
-
-/*  .username h1 {
-    text-transform: capitalize; 
-  }
-
-  .avatar {
-    height: 200px !important;
-    width: auto;
-  }
-
-  .error {
-    color: red;
-    font-size: small;
-  }
-
-  .user-card {
-    cursor: pointer;
-  }
-
-  .user-card:hover {
-    background: #e1e1e1;
-    border-top: 1px solid #d0d0d0;
-}
-*/
-
-
-  .dot, .circle {
-    height: 15px; /* Or any desired size */
-    width: 15px;  /* Must match height for a perfect circle */
-    background-color: #bbb; /* Or any desired color */
-    border-radius: 50%; /* This is key for creating a circle */
-    display: inline-block; /* Allows elements to sit side-by-side */
-  }
-
-  .circle {
-    background-color: transparent; /* Makes it a hollow circle */
-    border: 2px solid #bbb; /* Adds a border for visibility */
   }
 
   .progress {
@@ -64,6 +24,11 @@
     --bs-btn-padding-y: .25rem; 
     --bs-btn-padding-x: .5rem; 
     --bs-btn-font-size: .75rem;
+    cursor: pointer;
+  }
+
+  tr.highlight {
+      background-color: rgba(var(--dt-row-hover), 0.052) !important;
   }
 
 </style>
@@ -83,6 +48,8 @@
 
 <div class="row mt-4">
 
+{% if therapists %}
+
   <div class="row mt-4">
     <div class="col-4">
       <strong>Therapist</strong>
@@ -94,7 +61,7 @@
       </select>
     </div>   
   </div>
-  
+
   <div class="row mt-4">
     <div class="col-4">
       <strong>Client</strong>
@@ -104,25 +71,82 @@
         <option value="{{ client.id }}">{{ client.user.get_full_name }}</option>
         {% endfor %}
       </select>
-    </div> 
+    </div>
   </div>
 
+{% endif %}
 
+
+{% if client %}
 
   <div class="row mt-4">
-    
     <div class="col-12" id="tracking-container">
-      <table id="tracking" class="table table-striped table-bordered table-sm">
-        <thead></thead>
-        <tbody></tbody>
-      </table>
+      <div class="row">
+        <div class="col-8">
+          <table id="tracking" class="table table-bordered table-hover table-sm">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="col-4">
+          <table id="protocols" class="table table-bordered table-hover table-sm">
+            <thead>
+              <tr>
+                <th class='text-center'>number</th>
+                <th class='text-center'>ILF</th>
+                <th class='text-center'>A/T</th>
+                <th class='text-center'>Synch</th>
+                <th class='text-center'>FreqBand</th>
+                <th class='text-center'>protocol</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class='table-secondary'>
+                <td>&nbsp;</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr class='table-secondary'>
+                <td>&nbsp;</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr class='table-secondary'>
+                <td>&nbsp;</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr class='table-secondary'>
+                <td>&nbsp;</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12" id="protocol-container">
+        </div>
+      </div>  
     </div>
-
-    <div class="" id="protocol-container">
-    </div>
-
   </div>
 
+{% endif %}
+
+  
 
 </div>
 
@@ -131,33 +155,49 @@
 
 
 {% block footer %}
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+
+<script src="/static/api.js"></script>
+
+{% if therapists %}
 <script>
+  
+  document.addEventListener('DOMContentLoaded', () => {
+
+    let $therapistSelector = $("#therapist");
+    let $clientSelector = $("#client");
+
+    $therapistSelector.on('change', (event) => {
+      let therapist_id = $therapistSelector.val();
+      Api.fetchClientsByTherapist(therapist_id)
+        .then(clients => {
+          $clientSelector
+            .attr('disabled', false)
+            .show()
+            .empty()
+            .append('<option selected disabled>Select a Client</option>')
+            .append(
+              clients.map(client => {
+                return $('<option>', {value:client.id}).append(client.name);
+              })
+            );
+        });
+    });
+
+    $clientSelector.on('change', (event) => {
+      let client_id = $clientSelector.val();
+      window.location.href = `/dashboard/client/${client_id}`;
+    });
+
+  }, false);
+
+</script>
+{% endif %}
 
 
-  const Api = {
-    fetchClientsByTherapist: function(therapist_id) {
-      return fetch(`/api/v1/therapist/${therapist_id}/clients`)
-        .then(response => response.json())
-        .then(data => data.data.clients);
-    },
-    fetchSessionsByClient: function(client_id) {
-      return fetch(`api/v1/client/${client_id}/sessions`)
-        .then(response => response.json())
-        .then(data => data.data.sessions);        
-    },
-    fetchSymptomsByClient: function(client_id) {
-      return fetch(`api/v1/client/${client_id}/symptoms`)
-        .then(response => response.json())
-        .then(data => data.data.symptoms);
-    },
-    fetchSessionProtocol: function(session_id) {
-      return fetch(`api/v1/session/${session_id}/protocol`)
-        .then(response => response.json())
-        .then(data => data.data.protocol);
-    }
-  }
-
-
+{% if client %}
+<script>
 
   const UI = {
 
@@ -174,23 +214,22 @@
       let session_id = $(this).data()['sessionId'];
       Api.fetchSessionProtocol(session_id)
         .then((protocol) => {
-          UI.elements.$trackingContainer.removeClass('col-12').addClass('col-9');
-          UI.elements.$protocolContainer.addClass('col-3').empty();
-          UI.elements.$protocolContainer.append(
-            protocol.map(d => {
-              return $('<div>').addClass('card mt-3').append(
-                $('<div>').addClass('card-body').append(
-                  $('<h5>').addClass('card-title').append(d.site),
-                  $('<h6>').addClass('card-subtitle mb-2 text-body-secondary').append(d.type),
-                  $('<div>').append(d.duration + ' minutes'),
-                  ...d.settings.map(i => {
-                    let type = i.type ?? '';
-                    return $('<div>').append(type + ' ' + i.frequency + ' ' + i.unit);
-                  })
-                )
-              );
-            })
-          );
+          UI.elements.$protocolContainer.empty()
+            .append(
+              protocol.map(d => {
+                return $('<div>').addClass('card mt-3').append(
+                  $('<div>').addClass('card-body').append(
+                    $('<h5>').addClass('card-title').append(d.site),
+                    $('<h6>').addClass('card-subtitle mb-2 text-body-secondary').append(d.type),
+                    $('<div>').append(d.duration + ' minutes'),
+                    ...d.settings.map(i => {
+                      let type = i.type ?? '';
+                      return $('<div>').append(type + ' ' + i.frequency + ' ' + i.unit);
+                    })
+                  )
+                );
+              })
+            );
         });
     },
 
@@ -202,16 +241,45 @@
           <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: ${percentage}%; background-color: ${UI.colorScale(score)}">${score}</div>
         </div>`);
       }
+    },
 
-      // let elements = [];
-      // for (let i=1; i<11; i++) {
-      //   if (i != score) {
-      //     elements.push($('<span class="circle"></span>'));
-      //     continue;
-      //   }
-      //   elements.push($('<span class="dot"></span>'));
-      // }
-      // return elements;
+    makeProtocolButton: function(sessionId) {
+        let $button = $('<span>')
+                        .addClass('btn-protocol')
+                        .data('session-id', sessionId)
+                        .append('View')
+                        .on('click', UI.renderSessionProtocol);
+        return $button;
+    },
+
+    makeProtocolColumns: function(sessionId) {
+
+      let $ilfCell = $('<td>');
+      let $atCell = $('<td>');
+      let $syncCell = $('<td>');
+      let $fqbdCell =  $('<td>');
+      
+      Api.fetchSessionProtocol(sessionId)
+        .then((protocol) => { 
+          let sites = protocol.filter(d => {return 'ILF' == d.type}).map(d => { return d.site; });
+          $ilfCell.append(sites.join(', '));
+          sites = protocol.filter(d => {return 'AlphaTheta' == d.type}).map(d => { return d.site; });
+          $atCell.append(sites.join(', '));
+          sites = protocol.filter(d => {return 'Frequency Band' == d.type}).map(d => { return d.site; });
+          $fqbdCell.append(sites.join(', '));
+          sites = protocol.filter(d => {return 'Synchrony' == d.type}).map(d => { return d.site; });
+          $syncCell.append(sites.join(', '));
+        });
+
+      return [
+        $ilfCell,
+        $atCell,
+        $syncCell,
+        $fqbdCell,
+        $('<td>').addClass('text-center').append(
+          UI.makeProtocolButton(sessionId)
+        )
+      ];
     }
 
   }
@@ -220,43 +288,15 @@
 
   document.addEventListener('DOMContentLoaded', () => {
 
-    let $therapistSelector = $("#therapist");
-    let $clientSelector = $("#client");
+      let client_id = '{{ client.id|escapejs }}';
 
-
-    $therapistSelector.on('change', (event) => {
-
-      let therapist_id = $therapistSelector.val();
-
-      Api.fetchClientsByTherapist(therapist_id)
-        .then(clients => {
-          $clientSelector
-            .attr('disabled', false)
-            .show()
-            .empty()
-            .append('<option selected disabled>Select a Client</option>')
-            .append(
-              clients.map(client => {
-                return $('<option>', {value:client.id}).append(client.name);
-              })
-            );
-        });
-
-    });
-
-
-    $clientSelector.on('change', (event) => {
-
-      let client_id = $clientSelector.val();
+      console.log(client_id);
 
       Promise.all([
         Api.fetchSymptomsByClient(client_id),
         Api.fetchSessionsByClient(client_id)
       ])
       .then((results) => {
-
-        let dataTable = new DataTable('#tracking');
-        dataTable.destroy();
 
         let dataset = {
           symptoms: {},
@@ -314,8 +354,7 @@
           $('<th>').addClass('text-center').append('number'),
           ..._symptoms.map(d => {
             return $('<th>').append(d)
-          }),
-          $('<th>').addClass('text-center').append('protocol')
+          })
         );
 
         $('#tracking').empty()
@@ -326,79 +365,111 @@
                 let rows = [];
 
                 rows.push(
-                  $('<tr>').append(
+                  $('<tr>').addClass('table-secondary').append(
                     $('<td>').append('Good Week'),
                     $('<td>').append(''),
                     ..._symptoms.map(d => {
                       let icon = UI.formatScore(dataset.baselines.good.scores[d]);
                       return $('<td>').append(icon);
-                    }),
-                    $('<td>').append('')
+                    })
                   )
                 );
 
                 rows.push(
-                  $('<tr>').append(
+                  $('<tr>').addClass('table-secondary').append(
                     $('<td>').append('Bad Week'),
                     $('<td>').append(''),
                     ..._symptoms.map(d => {
                       let icon = UI.formatScore(dataset.baselines.bad.scores[d]);
                       return $('<td>').append(icon);
-                    }),
-                    $('<td>').append('')
+                    })
                   )
                 );
 
                 rows.push(
-                  $('<tr>').append(
+                  $('<tr>').addClass('table-secondary').append(
                     $('<td>').append('Usual Week'),
                     $('<td>').append(''),
                     ..._symptoms.map(d => {
                       let icon = UI.formatScore(dataset.baselines.usual.scores[d]);
                       return $('<td>').append(icon);
-                    }),
-                    $('<td>').append('')
+                    })
                   )
                 );
 
                 for (let date in dataset.sessions) {
                   rows.push(
-                    $('<tr>').append(
+                    $('<tr>').attr('session-id', dataset.sessions[date].id).append(
                       $('<td>').append(date),
                       $('<td>').addClass('text-center').append(dataset.sessions[date].number),
                       ..._symptoms.map(d => {
                         let icon = UI.formatScore(dataset.sessions[date].scores[d]);
                         return $('<td>').append(icon);
-                      }),
-                      $('<td>').addClass('text-center').append(
-                        $('<button>')
-                          .addClass('btn btn-sm btn-info btn-protocol')
-                          .data('session-id', dataset.sessions[date].id)
-                          .append('Protocol')
-                          .on('click', UI.renderSessionProtocol)
-                      )
+                      })
                     )
                   );
                 }
 
                 return rows;
               })()
-            ),
-            $('<tfoot>').append($columns.clone())
+            )
+            // $('<tfoot>').append($columns.clone())
           );
 
 
-          dataTable = new DataTable('#tracking', {
+          $('#protocols tbody')
+            .append(
+              (function(){
+                let rows = []
+                for (let date in dataset.sessions) {
+                  rows.push(
+                    $('<tr>').attr('session-id', dataset.sessions[date].id).append(
+                      // $('<td>').append(date),
+                      $('<td>').addClass('text-center').append(dataset.sessions[date].number),
+                      ...UI.makeProtocolColumns(dataset.sessions[date].id)
+                    )
+                  );
+                }
+                return rows;
+              })()
+            );
+
+
+          let dataTable1 = new DataTable('#tracking', {
             ordering: false,
             paging: false,
-            searching: false
+            searching: false,
+            info: false
           });
 
-      });
+          let dataTable2 = new DataTable('#protocols', {
+            ordering: false,
+            paging: false,
+            searching: false,
+            info: false
+          });
+
+
+          $('tr').on('mouseenter', function(event) {
+            let $el = $(this);
+            $('tr').removeClass('highlight')
+            let sessionId = $el.attr('session-id');
+            if (sessionId) {
+              $(`tr[session-id="${sessionId}"]`).addClass('highlight');
+            }
+          });
+
+          $('table').on('mouseleave', function(event) {
+            $('tr').removeClass('highlight');
+          });
+
+      //});
 
     });
 
   }, false);
 
 </script>
+{% endif %}
+
 {% endblock %}
