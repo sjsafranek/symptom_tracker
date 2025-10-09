@@ -6,32 +6,12 @@
 
 {% block stylesheet %}
 
-<style>
-  
-  main {
-    padding-top: 80px;
-  }
+<!-- DataTables -->
+<link href="https://cdn.datatables.net/v/bs5/dt-2.3.4/datatables.min.css" rel="stylesheet" integrity="sha384-i0jVPhw/X00l5EPvMOBv0lcGYXlSQGOqNYpMK/406rxta9oBump0IZJIHzvtf3+H" crossorigin="anonymous">
 
-  .progress {
-    border-radius: 0px;
-  }
+<!-- Custom -->
+<link href="/static/style.css" rel="stylesheet">
 
-  td {
-    vertical-align: middle;
-  }
-
-  .btn-protocol {
-    --bs-btn-padding-y: .25rem; 
-    --bs-btn-padding-x: .5rem; 
-    --bs-btn-font-size: .75rem;
-    cursor: pointer;
-  }
-
-  tr.highlight {
-      background-color: rgba(var(--dt-row-hover), 0.052) !important;
-  }
-
-</style>
 {% endblock %}
 
 
@@ -156,9 +136,16 @@
 
 {% block footer %}
 
+
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/v/bs5/dt-2.3.4/datatables.min.js" integrity="sha384-jVoHjtunWKmr2zpSki5PSXfFYRsTQQm1uk4wpf45zuYxast668XkB2fJL8PjloNc" crossorigin="anonymous"></script>
+
+<!-- D3 -->
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 
+<!-- Custom -->
 <script src="/static/api.js"></script>
+
 
 {% if therapists %}
 <script>
@@ -194,6 +181,7 @@
 
 </script>
 {% endif %}
+
 
 
 {% if client %}
@@ -471,5 +459,6 @@
 
 </script>
 {% endif %}
+
 
 {% endblock %}
