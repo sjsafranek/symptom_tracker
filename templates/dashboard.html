@@ -64,8 +64,6 @@
       <div class="row">
         <div class="col-8">
           <table id="tracking" class="table table-bordered table-hover table-sm">
-            <thead></thead>
-            <tbody></tbody>
           </table>
         </div>
         <div class="col-4">
@@ -189,37 +187,9 @@
 
   const UI = {
 
-    elements: {
-      $trackingContainer: $('#tracking-container'),
-      $protocolContainer: $('#protocol-container')
-    },
-
     colorScale: d3.scaleLinear()
       .domain([0, 10]) // Input data range
       .range(["blue", "red"]), // Output color range
-
-    renderSessionProtocol: function(event) {
-      let session_id = $(this).data()['sessionId'];
-      Api.fetchSessionProtocol(session_id)
-        .then((protocol) => {
-          UI.elements.$protocolContainer.empty()
-            .append(
-              protocol.map(d => {
-                return $('<div>').addClass('card mt-3').append(
-                  $('<div>').addClass('card-body').append(
-                    $('<h5>').addClass('card-title').append(d.site),
-                    $('<h6>').addClass('card-subtitle mb-2 text-body-secondary').append(d.type),
-                    $('<div>').append(d.duration + ' minutes'),
-                    ...d.settings.map(i => {
-                      let type = i.type ?? '';
-                      return $('<div>').append(type + ' ' + i.frequency + ' ' + i.unit);
-                    })
-                  )
-                );
-              })
-            );
-        });
-    },
 
     formatScore: function(score) {
       if (score) {
@@ -236,7 +206,7 @@
                         .addClass('btn-protocol')
                         .data('session-id', sessionId)
                         .append('View')
-                        .on('click', UI.renderSessionProtocol);
+                        .on('click', App.renderSessionProtocol);
         return $button;
     },
 
@@ -268,190 +238,236 @@
           UI.makeProtocolButton(sessionId)
         )
       ];
+    },
+
+    initDataTable: function($el) {
+      let options = {
+        ordering: false,
+        paging: false,
+        searching: false,
+        info: false
+      };
+      let dataTable = new DataTable($el, options);
+      return dataTable;
     }
 
   }
 
 
+  const App = {
+    
+    elements: {
+      $protocolContainer: $('#protocol-container'),
+      $trackingTable: $('#tracking'),
+      $protocolTable: $('#protocols')
+    },
+
+    buildDataset: function(results) {
+      let dataset = {
+        symptoms: {},
+        baselines: {
+          'good': {
+            number: null,
+            date: 'Baseline: Good Week',
+            scores: {}
+          },
+          'bad': {
+            number: null,
+            date: 'Baseline: Bad Week',
+            scores: {}
+          },
+          'usual': {
+            number: null,
+            date: 'Baseline: Usual Week',
+            scores: {}
+          }
+        },
+        sessions: {}
+      };
+      
+      let symptoms = results[0];
+      for (let i=0; i<symptoms.length; i++) {
+        let symptom = symptoms[i];
+        dataset.symptoms[symptom.name] = symptom.is_active;
+        dataset.baselines.good.scores[symptom.name] = symptom.baseline.goodweek;
+        dataset.baselines.bad.scores[symptom.name] = symptom.baseline.badweek;
+        dataset.baselines.usual.scores[symptom.name] = symptom.baseline.usualweek;
+      }
+
+
+      let sessions = results[1];
+      for (let i=0; i<sessions.length; i++) {
+        let session = sessions[i];
+        if (session.no_show) continue;
+
+        dataset.sessions[session.date] = {
+          id: session.id,
+          date: session.date,
+          number: session.number,
+          scores: {}
+        }
+
+        for (let j=0; j<session.symptom_scores.length; j++) {
+          let symptom = session.symptom_scores[j];
+          dataset.sessions[session.date].scores[symptom.name] = symptom.score;
+        }
+      } 
+
+      return dataset;
+    },
+
+    renderSessionProtocol: function(event) {
+      let session_id = $(this).data()['sessionId'];
+      Api.fetchSessionProtocol(session_id)
+        .then((protocol) => {
+          UI.elements.$protocolContainer.empty()
+            .append(
+              protocol.map(d => {
+                return $('<div>').addClass('card mt-3').append(
+                  $('<div>').addClass('card-body').append(
+                    $('<h5>').addClass('card-title').append(d.site),
+                    $('<h6>').addClass('card-subtitle mb-2 text-body-secondary').append(d.type),
+                    $('<div>').append(d.duration + ' minutes'),
+                    ...d.settings.map(i => {
+                      let type = i.type ?? '';
+                      return $('<div>').append(type + ' ' + i.frequency + ' ' + i.unit);
+                    })
+                  )
+                );
+              })
+            );
+        });
+    },
+
+    renderTrackingTable: function(dataset) {
+
+      let _symptoms = Object.keys(dataset.symptoms);
+
+      $columns = $('<tr>').append(
+        $('<th>').append('date'),
+        $('<th>').addClass('text-center').append('number'),
+        ..._symptoms.map(d => {
+          return $('<th>').append(d)
+        })
+      );
+
+      App.elements.$trackingTable.append(
+        $('<thead>').append($columns.clone()),
+        $('<tbody>').append(
+          (function() {
+            let rows = [];
+
+            rows.push(
+              $('<tr>').addClass('table-secondary').append(
+                $('<td>').append('Good Week'),
+                $('<td>').append(''),
+                ..._symptoms.map(d => {
+                  let icon = UI.formatScore(dataset.baselines.good.scores[d]);
+                  return $('<td>').append(icon);
+                })
+              )
+            );
+
+            rows.push(
+              $('<tr>').addClass('table-secondary').append(
+                $('<td>').append('Bad Week'),
+                $('<td>').append(''),
+                ..._symptoms.map(d => {
+                  let icon = UI.formatScore(dataset.baselines.bad.scores[d]);
+                  return $('<td>').append(icon);
+                })
+              )
+            );
+
+            rows.push(
+              $('<tr>').addClass('table-secondary').append(
+                $('<td>').append('Usual Week'),
+                $('<td>').append(''),
+                ..._symptoms.map(d => {
+                  let icon = UI.formatScore(dataset.baselines.usual.scores[d]);
+                  return $('<td>').append(icon);
+                })
+              )
+            );
+
+            for (let date in dataset.sessions) {
+              rows.push(
+                $('<tr>').attr('session-id', dataset.sessions[date].id).append(
+                  $('<td>').append(date),
+                  $('<td>').addClass('text-center').append(dataset.sessions[date].number),
+                  ..._symptoms.map(d => {
+                    let icon = UI.formatScore(dataset.sessions[date].scores[d]);
+                    return $('<td>').append(icon);
+                  })
+                )
+              );
+            }
+
+            return rows;
+          })()
+        )
+      );
+
+      UI.initDataTable(App.elements.$trackingTable);
+    },
+
+    renderProtocolTable: function(dataset) {
+      App.elements.$protocolTable.find('tbody').append(
+        (function(){
+          let rows = []
+          for (let date in dataset.sessions) {
+            rows.push(
+              $('<tr>').attr('session-id', dataset.sessions[date].id).append(
+                // $('<td>').append(date),
+                $('<td>').addClass('text-center').append(dataset.sessions[date].number),
+                ...UI.makeProtocolColumns(dataset.sessions[date].id)
+              )
+            );
+          }
+          return rows;
+        })()
+      );
+      UI.initDataTable(App.elements.$protocolTable);
+    }
+
+
+  };
+
 
   document.addEventListener('DOMContentLoaded', () => {
 
-      let client_id = '{{ client.id|escapejs }}';
+    let client_id = '{{ client.id|escapejs }}';
 
-      console.log(client_id);
+    Promise.all([
+      Api.fetchSymptomsByClient(client_id),
+      Api.fetchSessionsByClient(client_id)
+    ])
+    .then(App.buildDataset)
+    .then((dataset) => {
 
-      Promise.all([
-        Api.fetchSymptomsByClient(client_id),
-        Api.fetchSessionsByClient(client_id)
+      return Promise.all([
+        App.renderTrackingTable(dataset),
+        App.renderProtocolTable(dataset)
       ])
-      .then((results) => {
-
-        let dataset = {
-          symptoms: {},
-          baselines: {
-            'good': {
-              number: null,
-              date: 'Baseline: Good Week',
-              scores: {}
-            },
-            'bad': {
-              number: null,
-              date: 'Baseline: Bad Week',
-              scores: {}
-            },
-            'usual': {
-              number: null,
-              date: 'Baseline: Usual Week',
-              scores: {}
-            }
-          },
-          sessions: {}
-        };
-        
-        let symptoms = results[0];
-        for (let i=0; i<symptoms.length; i++) {
-          let symptom = symptoms[i];
-          dataset.symptoms[symptom.name] = symptom.is_active;
-          dataset.baselines.good.scores[symptom.name] = symptom.baseline.goodweek;
-          dataset.baselines.bad.scores[symptom.name] = symptom.baseline.badweek;
-          dataset.baselines.usual.scores[symptom.name] = symptom.baseline.usualweek;
-        }
-
-
-        let sessions = results[1];
-        for (let i=0; i<sessions.length; i++) {
-          let session = sessions[i];
-          if (session.no_show) continue;
-
-          dataset.sessions[session.date] = {
-            id: session.id,
-            date: session.date,
-            number: session.number,
-            scores: {}
+      .then(() => {
+        // attach listeners
+        $('tr').on('mouseenter', function(event) {
+          let $el = $(this);
+          $('tr').removeClass('highlight')
+          let sessionId = $el.attr('session-id');
+          if (sessionId) {
+            $(`tr[session-id="${sessionId}"]`).addClass('highlight');
           }
+        });
 
-          for (let j=0; j<session.symptom_scores.length; j++) {
-            let symptom = session.symptom_scores[j];
-            dataset.sessions[session.date].scores[symptom.name] = symptom.score;
-          }
-        } 
+        $('table').on('mouseleave', function(event) {
+          $('tr').removeClass('highlight');
+        });
+      });
 
-        let _symptoms = Object.keys(dataset.symptoms);
-        $columns = $('<tr>').append(
-          $('<th>').append('date'),
-          $('<th>').addClass('text-center').append('number'),
-          ..._symptoms.map(d => {
-            return $('<th>').append(d)
-          })
-        );
-
-        $('#tracking').empty()
-          .append(
-            $('<thead>').append($columns.clone()),
-            $('<tbody>').append(
-              (function() {
-                let rows = [];
-
-                rows.push(
-                  $('<tr>').addClass('table-secondary').append(
-                    $('<td>').append('Good Week'),
-                    $('<td>').append(''),
-                    ..._symptoms.map(d => {
-                      let icon = UI.formatScore(dataset.baselines.good.scores[d]);
-                      return $('<td>').append(icon);
-                    })
-                  )
-                );
-
-                rows.push(
-                  $('<tr>').addClass('table-secondary').append(
-                    $('<td>').append('Bad Week'),
-                    $('<td>').append(''),
-                    ..._symptoms.map(d => {
-                      let icon = UI.formatScore(dataset.baselines.bad.scores[d]);
-                      return $('<td>').append(icon);
-                    })
-                  )
-                );
-
-                rows.push(
-                  $('<tr>').addClass('table-secondary').append(
-                    $('<td>').append('Usual Week'),
-                    $('<td>').append(''),
-                    ..._symptoms.map(d => {
-                      let icon = UI.formatScore(dataset.baselines.usual.scores[d]);
-                      return $('<td>').append(icon);
-                    })
-                  )
-                );
-
-                for (let date in dataset.sessions) {
-                  rows.push(
-                    $('<tr>').attr('session-id', dataset.sessions[date].id).append(
-                      $('<td>').append(date),
-                      $('<td>').addClass('text-center').append(dataset.sessions[date].number),
-                      ..._symptoms.map(d => {
-                        let icon = UI.formatScore(dataset.sessions[date].scores[d]);
-                        return $('<td>').append(icon);
-                      })
-                    )
-                  );
-                }
-
-                return rows;
-              })()
-            )
-            // $('<tfoot>').append($columns.clone())
-          );
-
-
-          $('#protocols tbody')
-            .append(
-              (function(){
-                let rows = []
-                for (let date in dataset.sessions) {
-                  rows.push(
-                    $('<tr>').attr('session-id', dataset.sessions[date].id).append(
-                      // $('<td>').append(date),
-                      $('<td>').addClass('text-center').append(dataset.sessions[date].number),
-                      ...UI.makeProtocolColumns(dataset.sessions[date].id)
-                    )
-                  );
-                }
-                return rows;
-              })()
-            );
-
-
-          let dataTable1 = new DataTable('#tracking', {
-            ordering: false,
-            paging: false,
-            searching: false,
-            info: false
-          });
-
-          let dataTable2 = new DataTable('#protocols', {
-            ordering: false,
-            paging: false,
-            searching: false,
-            info: false
-          });
-
-
-          $('tr').on('mouseenter', function(event) {
-            let $el = $(this);
-            $('tr').removeClass('highlight')
-            let sessionId = $el.attr('session-id');
-            if (sessionId) {
-              $(`tr[session-id="${sessionId}"]`).addClass('highlight');
-            }
-          });
-
-          $('table').on('mouseleave', function(event) {
-            $('tr').removeClass('highlight');
-          });
-
-      //});
+      // draw lines between rows
+      // let $canvas = $('<canvas id="canvas"></canvas>');
+      // $('body').prepend($canvas);
 
     });
 
