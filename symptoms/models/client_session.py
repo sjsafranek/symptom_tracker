@@ -10,6 +10,7 @@ from .therapist import Therapist
 
 
 class ClientSession(models.Model):
+    id = models.AutoField(primary_key=True)
     client = ForeignKey(Client, null=True, on_delete=models.CASCADE)    
     therapist = ForeignKey(Therapist, null=True, on_delete=models.SET_NULL)
     date = models.DateField()

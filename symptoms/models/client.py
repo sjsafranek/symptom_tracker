@@ -13,6 +13,7 @@ from .therapist import Therapist
 
 
 class Client(models.Model):
+    id = models.AutoField(primary_key=True)
     # Extending User Model Using a One-To-One Link
     ##user = OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     user = OneToOneField(User, on_delete=models.CASCADE)

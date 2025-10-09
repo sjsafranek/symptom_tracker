@@ -8,6 +8,7 @@ from .client import Client
 
 
 class ClientNote(models.Model):
+    id = models.AutoField(primary_key=True)
     client = ForeignKey(Client, on_delete=models.CASCADE)
     therapist = ForeignKey(Therapist, null=True, on_delete=models.SET_NULL)
     note = TextField(blank=False, null=False)

@@ -25,6 +25,7 @@ from .client_session import ClientSession
 #
 
 class BaseClientSessionProtocolSiteTrainingModality(models.Model):
+    id = models.AutoField(primary_key=True)
     session = ForeignKey(ClientSession, null=False, on_delete=models.CASCADE)
     site = CharField(
             max_length=32,

@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 
 
 class Therapist(models.Model):
+    id = models.AutoField(primary_key=True)
     # Extending User Model Using a One-To-One Link
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     created_at = DateTimeField(auto_now_add=True)

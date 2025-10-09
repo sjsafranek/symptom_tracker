@@ -13,6 +13,7 @@ from .symptom_category import SymptomCategory
 
 
 class ClientSymptom(models.Model):
+    id = models.AutoField(primary_key=True)
     client = ForeignKey(Client, on_delete=models.CASCADE)
     description = CharField(max_length=50)
     symptom_categories = ManyToManyField(SymptomCategory, blank=False)

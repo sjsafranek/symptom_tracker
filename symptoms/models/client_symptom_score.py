@@ -10,6 +10,7 @@ from .client_symptom import ClientSymptom
 
 
 class ClientSessionSymptomScore(models.Model):
+    id = models.AutoField(primary_key=True)
     session = ForeignKey(ClientSession, null=False, on_delete=models.CASCADE)
     symptom = ForeignKey(ClientSymptom, null=False, on_delete=models.CASCADE)
     score = IntegerField(
