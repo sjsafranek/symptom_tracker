@@ -1,4 +1,6 @@
 import json
+from datetime import datetime
+
 from django.contrib import messages
 from django.shortcuts import render
 from django.http import HttpResponse
@@ -14,6 +16,7 @@ from .models import Therapist
 from .models import Client
 from .models import ClientSession
 from .models import ClientSymptom
+from .models import ClientSessionSymptomScore
 from .models import ClientSessionProtocolSiteTrainingILF
 from .models import ClientSessionProtocolSiteTrainingAlphaTheta
 from .models import ClientSessionProtocolSiteTrainingFrequencyBand
@@ -137,3 +140,63 @@ def get_protocol_by_session(request, session_id):
     })
 
 
+@login_required
+def api_handler(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            api_request = ApiRequest(data)
+            api_response, status_code = do(api_request)
+            return JsonResponse(api_response, status=status_code)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'error': 'Invalid JSON'}, status=400)
+    else:
+        return JsonResponse({'status': 'error', 'error': 'Only POST requests allowed'}, status=405)
+
+
+
+
+class ApiRequest(object):
+
+    def __init__(self, data):
+        self.data = data
+
+    @property
+    def method(self):
+        return self.data.get('method')
+
+    def param(self, key):
+        return self.data.get('params', {}).get(key)
+
+
+def do(api_request):
+
+    if 'set_session_symptom_score' == api_request.method:
+        session_id = api_request.param('session_id')
+        symptom_id = api_request.param('symptom_id')
+        symptom_score = api_request.param('symptom_score')
+        session = ClientSession.objects.filter(id=session_id).get()
+        symptom = ClientSymptom.objects.filter(id=symptom_id).get()
+
+        score = ClientSessionSymptomScore(session=session, symptom=symptom, score=symptom_score)
+        score.save()
+
+        return {'status': 'ok'}, 200
+
+
+    if 'create_session' == api_request.method:
+
+        client_id = api_request.param('client_id')
+        
+        date_string = api_request.param('date')
+        format_string = "%Y-%m-%d"
+        date = datetime.strptime(date_string, format_string)
+
+        client = Client.objects.get(id=client_id)
+        session = ClientSession(client=client, therapist=None, date=date)
+        session.save()
+
+        return {'status': 'ok'}, 200
+
+
+    return {'status': 'error', 'error': 'Method not found'}, 404

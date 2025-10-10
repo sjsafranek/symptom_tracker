@@ -1,5 +1,24 @@
 
 
+// The following function are copying from 
+// https://docs.djangoproject.com/en/dev/ref/csrf/#ajax
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
 const Api = {
 
   fetchClientsByTherapist: function(therapist_id) {
@@ -24,6 +43,39 @@ const Api = {
     return fetch(`/api/v1/session/${session_id}/protocol`)
       .then(response => response.json())
       .then(data => data.data.protocol);
+  },
+
+  _do: function(api_request) {
+    let csrftoken = getCookie('csrftoken');
+    return fetch(`/api/v1`, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrftoken },
+      body: JSON.stringify(api_request),
+    })
+    .then(response => response.json());
+  },
+
+  setSessionSymptomScore: function(session_id, symptom_id, symptom_score) {
+    return Api._do({
+      method: "set_session_symptom_score",
+      params: {
+        session_id: session_id, 
+        symptom_id: symptom_id,
+        symptom_score: symptom_score 
+      }
+    });
+  },
+
+  createClientSession: function(client_id, date) {
+    return Api._do({
+      method: "create_session",
+      params: {
+        client_id: client_id,
+        date: date
+      }
+    });
   }
+
+
   
 }

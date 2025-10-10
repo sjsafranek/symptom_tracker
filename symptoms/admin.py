@@ -101,9 +101,10 @@ class ClientSessionAdmin(admin.ModelAdmin):
     link_to_client.short_description = 'Client'    
 
     def link_to_therapist(self, obj):
-        view_name = f"admin:{APP_LABEL}_{'therapist'}_change"
-        link = django.urls.reverse(view_name, args=[obj.therapist.id])
-        return django.utils.html.format_html('<a href="{}">{}</a>', link, obj.therapist)
+        if obj.therapist:
+            view_name = f"admin:{APP_LABEL}_{'therapist'}_change"
+            link = django.urls.reverse(view_name, args=[obj.therapist.id])
+            return django.utils.html.format_html('<a href="{}">{}</a>', link, obj.therapist)
     link_to_therapist.short_description = 'Therapist'     
 
 admin.site.register(models.ClientSession, ClientSessionAdmin)

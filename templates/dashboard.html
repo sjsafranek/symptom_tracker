@@ -192,13 +192,51 @@
       .range(["blue", "red"]), // Output color range
 
     formatScore: function(score) {
-      if (score) {
+      if (score !== undefined) {
         let percentage = (score/10)*100;
         return $(`
         <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
           <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: ${percentage}%; background-color: ${UI.colorScale(score)}">${score}</div>
         </div>`);
       }
+    },
+
+    makeSessionSymptomScoreButton: function(session_id, symptom) {
+      let $button = $(`<button class="btn btn-sm btn-info btn-symptom-score"> Set </button>`)
+                      .on('click', (event) => {
+
+                        Swal.fire({
+                          title: `${symptom.name}`,
+                          showCancelButton: true,
+                          showCloseButton: true,
+                          input: "number",
+                          inputAttributes: {
+                            min: '0',  // Sets the minimum allowed value to 1
+                            max: '10', // Sets the maximum allowed value to 100
+                            step: '1'  // Optional: defines the step increment for the input
+                          },
+                          inputValidator: (value) => {
+                            if (value === '' || isNaN(value)) {
+                              return 'Please enter a valid number!';
+                            }
+                            const numValue = parseInt(value);
+                            if (numValue < 0 || numValue > 10) {
+                              return 'Number must be between 1 and 10!';
+                            }
+                            return null; // No error
+                          }
+                        })
+                        .then((result) => {
+                          if (result.isConfirmed) {
+                            Api.setSessionSymptomScore(session_id, symptom.id, parseInt(result.value))
+                              .then(() => {
+                                window.location.reload();
+                              });
+                          }
+                        });
+
+                      });
+      return $button;
     },
 
     makeProtocolButton: function(sessionId) {
@@ -288,7 +326,7 @@
       let symptoms = results[0];
       for (let i=0; i<symptoms.length; i++) {
         let symptom = symptoms[i];
-        dataset.symptoms[symptom.name] = symptom.is_active;
+        dataset.symptoms[symptom.name] = symptom;
         dataset.baselines.good.scores[symptom.name] = symptom.baseline.goodweek;
         dataset.baselines.bad.scores[symptom.name] = symptom.baseline.badweek;
         dataset.baselines.usual.scores[symptom.name] = symptom.baseline.usualweek;
@@ -320,7 +358,7 @@
       let session_id = $(this).data()['sessionId'];
       Api.fetchSessionProtocol(session_id)
         .then((protocol) => {
-          UI.elements.$protocolContainer.empty()
+          App.elements.$protocolContainer.empty()
             .append(
               protocol.map(d => {
                 return $('<div>').addClass('card mt-3').append(
@@ -341,18 +379,20 @@
 
     renderTrackingTable: function(dataset) {
 
-      let _symptoms = Object.keys(dataset.symptoms);
+      let symptomsNames = Object.values(dataset.symptoms)
+                            .filter(d => d.is_active)
+                            .map(d => d.name);
 
-      $columns = $('<tr>').append(
+      let $headers = $('<tr>').append(
         $('<th>').append('date'),
         $('<th>').addClass('text-center').append('number'),
-        ..._symptoms.map(d => {
-          return $('<th>').append(d)
+        ...symptomsNames.map(d => {
+          return $('<th>').addClass('column-symptom').append(d)
         })
       );
 
       App.elements.$trackingTable.append(
-        $('<thead>').append($columns.clone()),
+        $('<thead>').append($headers),
         $('<tbody>').append(
           (function() {
             let rows = [];
@@ -361,7 +401,7 @@
               $('<tr>').addClass('table-secondary').append(
                 $('<td>').append('Good Week'),
                 $('<td>').append(''),
-                ..._symptoms.map(d => {
+                ...symptomsNames.map(d => {
                   let icon = UI.formatScore(dataset.baselines.good.scores[d]);
                   return $('<td>').append(icon);
                 })
@@ -372,7 +412,7 @@
               $('<tr>').addClass('table-secondary').append(
                 $('<td>').append('Bad Week'),
                 $('<td>').append(''),
-                ..._symptoms.map(d => {
+                ...symptomsNames.map(d => {
                   let icon = UI.formatScore(dataset.baselines.bad.scores[d]);
                   return $('<td>').append(icon);
                 })
@@ -383,7 +423,7 @@
               $('<tr>').addClass('table-secondary').append(
                 $('<td>').append('Usual Week'),
                 $('<td>').append(''),
-                ..._symptoms.map(d => {
+                ...symptomsNames.map(d => {
                   let icon = UI.formatScore(dataset.baselines.usual.scores[d]);
                   return $('<td>').append(icon);
                 })
@@ -395,13 +435,17 @@
                 $('<tr>').attr('session-id', dataset.sessions[date].id).append(
                   $('<td>').append(date),
                   $('<td>').addClass('text-center').append(dataset.sessions[date].number),
-                  ..._symptoms.map(d => {
-                    let icon = UI.formatScore(dataset.sessions[date].scores[d]);
+                  ...symptomsNames.map(d => {
+                    let icon = UI.formatScore(dataset.sessions[date].scores[d]) ?? 
+                               UI.makeSessionSymptomScoreButton(dataset.sessions[date].id, dataset.symptoms[d]);
                     return $('<td>').append(icon);
                   })
                 )
               );
             }
+
+            // rows.push();
+            // todo button to create session
 
             return rows;
           })()

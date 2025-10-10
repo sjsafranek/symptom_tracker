@@ -12,13 +12,14 @@ from .therapist import Therapist
 class ClientSession(models.Model):
     id = models.AutoField(primary_key=True)
     client = ForeignKey(Client, null=True, on_delete=models.CASCADE)    
-    therapist = ForeignKey(Therapist, null=True, on_delete=models.SET_NULL)
+    therapist = ForeignKey(Therapist, null=True, on_delete=models.SET_NULL, blank=True)
     date = models.DateField()
     no_show = models.BooleanField(default=False)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
     class Meta:
+        unique_together = ('client', 'date')
         verbose_name_plural = "Client Sessions"
 
     def __str__(self):
