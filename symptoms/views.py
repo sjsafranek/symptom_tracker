@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+from django.db.utils import IntegrityError
 from django.contrib import messages
 from django.shortcuts import render
 from django.http import HttpResponse
@@ -150,6 +151,8 @@ def api_handler(request):
             return JsonResponse(api_response, status=status_code)
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'error': 'Invalid JSON'}, status=400)
+        except IntegrityError as err:
+            return JsonResponse({'status': 'error', 'error': str(err)}, status=400)
     else:
         return JsonResponse({'status': 'error', 'error': 'Only POST requests allowed'}, status=405)
 
