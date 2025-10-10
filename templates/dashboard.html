@@ -26,7 +26,7 @@
 
 {% block content %}
 
-<div class="row mt-4">
+<div class="row mt-4 small">
 
 {% if therapists %}
 
@@ -338,7 +338,16 @@
         let session = sessions[i];
         if (session.no_show) continue;
 
-        dataset.sessions[session.date] = {
+        // dataset.sessions[session.date] = {
+        //   id: session.id,
+        //   date: session.date,
+        //   number: session.number,
+        //   scores: {}
+        // }
+
+        let session_key = `${session.date}_${session.id}`;
+
+        dataset.sessions[session_key] = {
           id: session.id,
           date: session.date,
           number: session.number,
@@ -347,7 +356,8 @@
 
         for (let j=0; j<session.symptom_scores.length; j++) {
           let symptom = session.symptom_scores[j];
-          dataset.sessions[session.date].scores[symptom.name] = symptom.score;
+          // dataset.sessions[session.date].scores[symptom.name] = symptom.score;
+          dataset.sessions[session_key].scores[symptom.name] = symptom.score;
         }
       } 
 
@@ -430,14 +440,15 @@
               )
             );
 
-            for (let date in dataset.sessions) {
+            for (let key in dataset.sessions) {
+              let session = dataset.sessions[key];
               rows.push(
-                $('<tr>').attr('session-id', dataset.sessions[date].id).append(
-                  $('<td>').append(date),
-                  $('<td>').addClass('text-center').append(dataset.sessions[date].number),
+                $('<tr>').attr('session-id', session.id).append(
+                  $('<td>').append(session.date),
+                  $('<td>').addClass('text-center').append(session.number),
                   ...symptomsNames.map(d => {
-                    let icon = UI.formatScore(dataset.sessions[date].scores[d]) ?? 
-                               UI.makeSessionSymptomScoreButton(dataset.sessions[date].id, dataset.symptoms[d]);
+                    let icon = UI.formatScore(session.scores[d]) ?? 
+                               UI.makeSessionSymptomScoreButton(session.id, dataset.symptoms[d]);
                     return $('<td>').append(icon);
                   })
                 )

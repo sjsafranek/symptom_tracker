@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.db.models import Max
 
 from .models import Therapist
 from .models import Client
@@ -190,12 +191,16 @@ def do(api_request):
     if 'create_session' == api_request.method:
 
         client_id = api_request.param('client_id')
-        
+        client = Client.objects.get(id=client_id)
+
         date_string = api_request.param('date')
         format_string = "%Y-%m-%d"
-        date = datetime.strptime(date_string, format_string)
+        date = datetime.strptime(date_string, format_string).date()
 
-        client = Client.objects.get(id=client_id)
+        max_date = ClientSession.objects.filter(client=client).aggregate(Max('date'))['date__max']
+        if (date < max_date):
+            return {'status': 'error', 'error': 'Max session date'}, 400
+
         session = ClientSession(client=client, therapist=None, date=date)
         session.save()
 

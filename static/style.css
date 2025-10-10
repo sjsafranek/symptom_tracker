@@ -12,14 +12,6 @@ td {
   text-align: center;
 }
 
-button.btn-symptom-score {
-  cursor: pointer;  
-  width: 80% !important;
-  --bs-btn-padding-y: .25rem !important;
-  --bs-btn-padding-x: .5rem !important;
-  --bs-btn-font-size: .75rem !important;
-}
-
 tr.highlight {
     background-color: rgba(var(--dt-row-hover), 0.052) !important;
 }
@@ -28,10 +20,23 @@ th.column-symptom {
   width: 125px !important;
 }
 
-
 #canvas{
     position: absolute;
     width: 100%;
     height: 100%;
     pointer-events: none;
+}
+
+.btn-protocol {
+  cursor: pointer;  
+  color: var(--bs-link-color);  
+  text-decoration: none;
+}
+
+.btn-symptom-score {
+  cursor: pointer;  
+  width: 80% !important;
+  --bs-btn-padding-y: .25rem !important;
+  --bs-btn-padding-x: .5rem !important;
+  --bs-btn-font-size: .75rem !important;
 }

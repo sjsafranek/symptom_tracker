@@ -19,7 +19,7 @@ class ClientSession(models.Model):
     updated_at = DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('client', 'date')
+        # unique_together = ('client', 'date')
         verbose_name_plural = "Client Sessions"
 
     def __str__(self):
