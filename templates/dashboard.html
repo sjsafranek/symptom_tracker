@@ -65,6 +65,7 @@
         <div class="col-8">
           <table id="tracking" class="table table-bordered table-hover table-sm">
           </table>
+          <button class='btn btn-sm btn-primary btn-add-session'>Add Session</button>
         </div>
         <div class="col-4">
           <table id="protocols" class="table table-bordered table-hover table-sm">
@@ -191,89 +192,47 @@
       .domain([0, 10]) // Input data range
       .range(["blue", "red"]), // Output color range
 
-    formatScore: function(score) {
+    formatScore: function(score, session_id, symptom) {
       if (score !== undefined) {
         let percentage = (score/10)*100;
-        return $(`
-        <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+        let $progressBar = $(`
+        <div class="progress session-symptom-score" role="progressbar" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
           <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: ${percentage}%; background-color: ${UI.colorScale(score)}">${score}</div>
         </div>`);
+        $progressBar.on('dblclick', (event) => { App.setSessionSymptomScore(session_id, symptom); });
+        return $progressBar;
       }
     },
 
     makeSessionSymptomScoreButton: function(session_id, symptom) {
       let $button = $(`<button class="btn btn-sm btn-info btn-symptom-score"> Set </button>`)
                       .on('click', (event) => {
-
-                        Swal.fire({
-                          title: `${symptom.name}`,
-                          showCancelButton: true,
-                          showCloseButton: true,
-                          input: "number",
-                          inputAttributes: {
-                            min: '0',  // Sets the minimum allowed value to 1
-                            max: '10', // Sets the maximum allowed value to 100
-                            step: '1'  // Optional: defines the step increment for the input
-                          },
-                          inputValidator: (value) => {
-                            if (value === '' || isNaN(value)) {
-                              return 'Please enter a valid number!';
-                            }
-                            const numValue = parseInt(value);
-                            if (numValue < 0 || numValue > 10) {
-                              return 'Number must be between 1 and 10!';
-                            }
-                            return null; // No error
-                          }
-                        })
-                        .then((result) => {
-                          if (result.isConfirmed) {
-                            Api.setSessionSymptomScore(session_id, symptom.id, parseInt(result.value))
-                              .then(() => {
-                                window.location.reload();
-                              });
-                          }
-                        });
-
+                        App.setSessionSymptomScore(session_id, symptom);
                       });
       return $button;
     },
 
     makeProtocolButton: function(sessionId) {
-        let $button = $('<span>')
-                        .addClass('btn-protocol')
-                        .data('session-id', sessionId)
-                        .append('View')
-                        .on('click', App.renderSessionProtocol);
-        return $button;
+        return $('<span>')
+                .addClass('btn-protocol')
+                .data('session-id', sessionId)
+                .append('View')
+                .on('click', App.renderSessionProtocol);
     },
 
-    makeProtocolColumns: function(sessionId) {
+    makeProtocolColumns: function(session) {
 
-      let $ilfCell = $('<td>');
-      let $atCell = $('<td>');
-      let $syncCell = $('<td>');
-      let $fqbdCell =  $('<td>');
-      
-      Api.fetchSessionProtocol(sessionId)
-        .then((protocol) => { 
-          let sites = protocol.filter(d => {return 'ILF' == d.type}).map(d => { return d.site; });
-          $ilfCell.append(sites.join(', '));
-          sites = protocol.filter(d => {return 'AlphaTheta' == d.type}).map(d => { return d.site; });
-          $atCell.append(sites.join(', '));
-          sites = protocol.filter(d => {return 'Frequency Band' == d.type}).map(d => { return d.site; });
-          $fqbdCell.append(sites.join(', '));
-          sites = protocol.filter(d => {return 'Synchrony' == d.type}).map(d => { return d.site; });
-          $syncCell.append(sites.join(', '));
-        });
+      var _getProtocolSites = function(type) {
+        return session.protocol.filter(d => {return type == d.type}).map(d => { return d.site; });
+      }
 
       return [
-        $ilfCell,
-        $atCell,
-        $syncCell,
-        $fqbdCell,
+        $('<td>').append(_getProtocolSites('ILF')),
+        $('<td>').append(_getProtocolSites('AlphaTheta')),
+        $('<td>').append(_getProtocolSites('Frequency Band')),
+        $('<td>').append(_getProtocolSites('Synchrony')),
         $('<td>').addClass('text-center').append(
-          UI.makeProtocolButton(sessionId)
+          UI.makeProtocolButton(session.id)
         )
       ];
     },
@@ -294,10 +253,35 @@
 
   const App = {
     
+    _clientID: '{{ client.id|escapejs }}',
+
     elements: {
       $protocolContainer: $('#protocol-container'),
       $trackingTable: $('#tracking'),
       $protocolTable: $('#protocols')
+    },
+
+    init: function() {
+      $('.btn-add-session').on('click', (event) => {App.createClientSession();});
+
+      return App;
+    },
+
+    displayError: function(error) {
+      message = error.error || error;
+      return Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: message
+      });
+    },    
+
+    _getMinSessionDate: function(days) {
+      days = days || 1;
+      let offset = 86400*1000*days;
+      let min = new Date();
+      min.setTime(min.getTime() - offset);
+      return min;
     },
 
     buildDataset: function(results) {
@@ -332,34 +316,20 @@
         dataset.baselines.usual.scores[symptom.name] = symptom.baseline.usualweek;
       }
 
-
+      // 
       let sessions = results[1];
-      for (let i=0; i<sessions.length; i++) {
-        let session = sessions[i];
-        if (session.no_show) continue;
+      dataset.sessions = Object.fromEntries(
+        sessions.filter(d => !d.no_show)
+                .map(session => {
+                  // format scores for easier lookup
+                  session.scores = Object.fromEntries(session.symptom_scores.map(symptom => [symptom.name, symptom.score]));
 
-        // dataset.sessions[session.date] = {
-        //   id: session.id,
-        //   date: session.date,
-        //   number: session.number,
-        //   scores: {}
-        // }
-
-        let session_key = `${session.date}_${session.id}`;
-
-        dataset.sessions[session_key] = {
-          id: session.id,
-          date: session.date,
-          number: session.number,
-          scores: {}
-        }
-
-        for (let j=0; j<session.symptom_scores.length; j++) {
-          let symptom = session.symptom_scores[j];
-          // dataset.sessions[session.date].scores[symptom.name] = symptom.score;
-          dataset.sessions[session_key].scores[symptom.name] = symptom.score;
-        }
-      } 
+                  // This allows for alphanumeric sorting 
+                  // and handles multiple sessions on the same day
+                  let key = `${session.date}_${session.id}`;  
+                  return [key, session];
+                })
+      );
 
       return dataset;
     },
@@ -447,7 +417,7 @@
                   $('<td>').append(session.date),
                   $('<td>').addClass('text-center').append(session.number),
                   ...symptomsNames.map(d => {
-                    let icon = UI.formatScore(session.scores[d]) ?? 
+                    let icon = UI.formatScore(session.scores[d], session.id, dataset.symptoms[d]) ?? 
                                UI.makeSessionSymptomScoreButton(session.id, dataset.symptoms[d]);
                     return $('<td>').append(icon);
                   })
@@ -470,12 +440,12 @@
       App.elements.$protocolTable.find('tbody').append(
         (function(){
           let rows = []
-          for (let date in dataset.sessions) {
+          for (let session_key in dataset.sessions) {
             rows.push(
-              $('<tr>').attr('session-id', dataset.sessions[date].id).append(
+              $('<tr>').attr('session-id', dataset.sessions[session_key].id).append(
                 // $('<td>').append(date),
                 // $('<td>').addClass('text-center').append(dataset.sessions[date].number),
-                ...UI.makeProtocolColumns(dataset.sessions[date].id)
+                ...UI.makeProtocolColumns(dataset.sessions[session_key])
               )
             );
           }
@@ -483,16 +453,83 @@
         })()
       );
       UI.initDataTable(App.elements.$protocolTable);
-    }
+    },
 
+    setSessionSymptomScore: function(session_id, symptom) {
+      return Swal.fire({
+        title: `${symptom.name}`,
+        showCancelButton: true,
+        showCloseButton: true,
+        input: "number",
+        inputAttributes: {
+          min: '0',  // Sets the minimum allowed value to 1
+          max: '10', // Sets the maximum allowed value to 100
+          step: '1'  // Optional: defines the step increment for the input
+        },
+        inputValidator: (value) => {
+          if (value === '' || isNaN(value)) {
+            return 'Please enter a valid number!';
+          }
+          const numValue = parseInt(value);
+          if (numValue < 0 || numValue > 10) {
+            return 'Number must be between 1 and 10!';
+          }
+          return null; // No error
+        }
+      })
+      .then((result) => {
+        if (result.isConfirmed) {
+          Api.setSessionSymptomScore(session_id, symptom.id, parseInt(result.value))
+            .then((response) => {
+              if ('error' == response.status) return App.displayError(response);
+              window.location.reload();
+            });
+        }
+      });
+    },
+
+    createClientSession: function() {
+      return Swal.fire({
+        title: `Add Session`,
+        showCancelButton: true,
+        showCloseButton: true,
+        input: "date",
+        inputAttributes: {
+          min: App._getMinSessionDate().toISOString().slice(0, 10)
+        },
+        inputValidator: (value) => {
+          // TODO :: check in future??
+        }
+      })
+      .then((result) => {
+        if (result.isConfirmed) {
+          Api.createClientSession(App._clientID, result.value)
+            .then((response) => {
+              if ('error' == response.status) return App.displayError(response);
+              window.location.reload();
+            });
+        }
+      });
+    },
+
+    render: function() {
+      return Promise.all([
+        Api.fetchSymptomsByClient(App._clientID),
+        Api.fetchSessionsByClient(App._clientID)
+      ])
+      .then(App.buildDataset)
+      .then((dataset) => {
+        return Promise.all([
+          App.renderTrackingTable(dataset),
+          App.renderProtocolTable(dataset)
+        ]);
+      });
+    }
 
   };
 
 
   document.addEventListener('DOMContentLoaded', () => {
-
-    let client_id = '{{ client.id|escapejs }}';
-
 
     //.BEGIN
     let $canvas = $('<canvas id="canvas"></canvas>');
@@ -524,20 +561,10 @@
     //.END
 
 
-    Promise.all([
-      Api.fetchSymptomsByClient(client_id),
-      Api.fetchSessionsByClient(client_id)
-    ])
-    .then(App.buildDataset)
-    .then((dataset) => {
-
-      return Promise.all([
-        App.renderTrackingTable(dataset),
-        App.renderProtocolTable(dataset)
-      ])
+    App.init().render()
       .then(() => {
-       
-         // attach listeners
+
+        // attach listeners
         $('tr').on('mouseenter', function(event) {
           let $el = $(this);
           ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -566,10 +593,8 @@
           $('tr').removeClass('highlight');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
-      
-      });
 
-    });
+      });
 
   }, false);
 

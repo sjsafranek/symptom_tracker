@@ -19,10 +19,11 @@ from .models import Client
 from .models import ClientSession
 from .models import ClientSymptom
 from .models import ClientSessionSymptomScore
-from .models import ClientSessionProtocolSiteTrainingILF
-from .models import ClientSessionProtocolSiteTrainingAlphaTheta
-from .models import ClientSessionProtocolSiteTrainingFrequencyBand
-from .models import ClientSessionProtocolSiteTrainingSynchrony
+from .utils import fetchProtocolBySessionId
+# from .models import ClientSessionProtocolSiteTrainingILF
+# from .models import ClientSessionProtocolSiteTrainingAlphaTheta
+# from .models import ClientSessionProtocolSiteTrainingFrequencyBand
+# from .models import ClientSessionProtocolSiteTrainingSynchrony
 
 
 @login_required(login_url='/accounts/login/')
@@ -83,6 +84,16 @@ def get_sessions_by_client(request, client_id):
                             'name': score.symptom.description,
                             'score': score.score
                         } for score in session.clientsessionsymptomscore_set.all()
+                    ],
+                    'protocol': [
+                        {
+                            'type': modality.type,
+                            'site': modality.site,
+                            'duration': modality.duration_minutes,
+                            'order': modality.order,
+                            'notes': modality.notes,
+                            'settings': modality.settings
+                        } for modality in fetchProtocolBySessionId(session.id)
                     ]
                 } for session in sessions
             ]
@@ -117,14 +128,7 @@ def get_symptoms_by_client(request, client_id):
 
 @login_required
 def get_protocol_by_session(request, session_id):
-
-    protocol = []
-    protocol += ClientSessionProtocolSiteTrainingILF.objects.filter(session__id=session_id).all()
-    protocol += ClientSessionProtocolSiteTrainingAlphaTheta.objects.filter(session__id=session_id).all()
-    protocol += ClientSessionProtocolSiteTrainingFrequencyBand.objects.filter(session__id=session_id).all()
-    protocol += ClientSessionProtocolSiteTrainingSynchrony.objects.filter(session__id=session_id).all()
-    protocol = sorted(protocol, key=lambda protocol: protocol.order)
-
+    protocol = fetchProtocolBySessionId(session_id)
     return JsonResponse({
         'status': 'ok',
         'data': {
@@ -154,8 +158,11 @@ def api_handler(request):
             return JsonResponse({'status': 'error', 'error': 'Invalid JSON'}, status=400)
         except IntegrityError as err:
             return JsonResponse({'status': 'error', 'error': str(err)}, status=400)
-    else:
-        return JsonResponse({'status': 'error', 'error': 'Only POST requests allowed'}, status=405)
+        except Exception as err:
+            print(err)
+            print(type(err))
+            return JsonResponse({'status': 'error', 'error': str(err)}, status=500)            
+    return JsonResponse({'status': 'error', 'error': 'Only POST requests allowed'}, status=405)
 
 
 
@@ -182,7 +189,10 @@ def do(api_request):
         session = ClientSession.objects.filter(id=session_id).get()
         symptom = ClientSymptom.objects.filter(id=symptom_id).get()
 
-        score = ClientSessionSymptomScore(session=session, symptom=symptom, score=symptom_score)
+        score = ClientSessionSymptomScore.objects.filter(session=session, symptom=symptom).first();
+        if not score:
+            score = ClientSessionSymptomScore(session=session, symptom=symptom)
+        score.score = symptom_score;
         score.save()
 
         return {'status': 'ok'}, 200

@@ -31,7 +31,6 @@ class ClientSession(models.Model):
             return None
         c=0
         for session in self.client.clientsession_set.filter(no_show=False).order_by('date'):
-            print(session)
             if self.id == session.id:
                 return c
             c += 1
