@@ -74,8 +74,16 @@ const Api = {
         date: date
       }
     });
-  }
+  },
 
+  disableSymptom: function(symptom_id) {
+    return Api._do({
+      method: "disable_symptom",
+      params: {
+        symptom_id: symptom_id
+      }
+    });
+  }
 
   
 }

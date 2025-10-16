@@ -217,4 +217,12 @@ def do(api_request):
         return {'status': 'ok'}, 200
 
 
+    if 'disable_symptom':
+        symptom_id = api_request.param('symptom_id')
+        symptom = ClientSymptom.objects.filter(id=symptom_id).get()
+        symptom.is_active = False
+        symptom.save()
+        return {'status': 'ok'}, 200
+
+
     return {'status': 'error', 'error': 'Method not found'}, 404

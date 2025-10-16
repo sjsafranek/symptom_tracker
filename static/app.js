@@ -5,51 +5,43 @@
       .domain([0, 10]) // Input data range
       .range(["blue", "red"]), // Output color range
 
-    formatScore: function(app, score, session_id, symptom) {
+    makeSymptomScoreProgressBar: function(score, session_id, symptom, listeners) {
       if (score !== undefined) {
         let percentage = (score/10)*100;
         let $progressBar = $(`
         <div class="progress session-symptom-score" role="progressbar" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
           <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: ${percentage}%; background-color: ${UI.colorScale(score)}">${score}</div>
         </div>`);
-        $progressBar.on('dblclick', (event) => { Forms.setSessionSymptomScore(session_id, symptom, score); });
+        $progressBar.on(listeners);
         return $progressBar;
       }
     },
 
-    makeSessionSymptomScoreButton: function(app, session_id, symptom) {
-      let $button = $(`<button class="btn btn-sm btn-info btn-symptom-score"> Set </button>`)
-                      .on('click', (event) => {
-                        Forms.setSessionSymptomScore(session_id, symptom);
-                      });
-      return $button;
+    makeSessionSymptomScoreButton: function(session_id, symptom, listeners) {
+      return $(`<button class="btn btn-sm btn-info btn-symptom-score"> Set </button>`)
+        .on(listeners);
     },
 
-    makeProtocolButton: function(app, sessionId) {
+    makeProtocolButton: function(sessionId, listeners) {
         return $('<span>')
-                .addClass('btn-protocol')
-                .data('session-id', sessionId)
-                .append('View')
-                .on('click', function(event) {
-                  app.renderSessionProtocol(event);
-                });
+          .addClass('btn-protocol')
+          .data('session-id', sessionId)
+          .append('View')
+          .on(listeners);
     },
 
-    makeProtocolColumns: function(app, session) {
-
-      var _getProtocolSites = function(type) {
-        return session.protocol.filter(d => {return type == d.type}).map(d => { return d.site; });
-      }
-
-      return [
-        $('<td>').append(_getProtocolSites('ILF')),
-        $('<td>').append(_getProtocolSites('AlphaTheta')),
-        $('<td>').append(_getProtocolSites('Frequency Band')),
-        $('<td>').append(_getProtocolSites('Synchrony')),
-        $('<td>').addClass('text-center').append(
-          UI.makeProtocolButton(app, session.id)
+    makeProtocolCard: function(protocol) {
+      return $('<div>').addClass('card mt-3').append(
+        $('<div>').addClass('card-body').append(
+          $('<h5>').addClass('card-title').append(protocol.site),
+          $('<h6>').addClass('card-subtitle mb-2 text-body-secondary').append(protocol.type),
+          $('<div>').append(protocol.duration + ' minutes'),
+          ...protocol.settings.map(d => {
+            let type = d.type ?? '';
+            return $('<div>').append(type + ' ' + d.frequency + ' ' + d.unit);
+          })
         )
-      ];
+      );
     },
 
     initDataTable: function($el) {
@@ -71,7 +63,6 @@
         text: message
       });
     }    
-
 
   }
 
@@ -145,7 +136,20 @@
     },
 
     disableSymptom: function(symptom) {
-      console.log('TODO :: disableSymptom', symptom);
+      Swal.fire({
+        title: `Do you want to disable '${symptom.name}'?`,
+        showCancelButton: true,
+        confirmButtonText: "Disable",
+        icon: "warning",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Api.disableSymptom(symptom.id)
+            .then((response) => {
+              if ('error' == response.status) return UI.displayError(response);
+              window.location.reload();
+            });
+        }
+      });
     }
 
   }
@@ -167,6 +171,49 @@
       $('.btn-add-session').on('click', Forms.createClientSession);
 
       return this;
+    }
+
+    _makeSymptomScoreProgressBar(score, session_id, symptom) {
+      return UI.makeSymptomScoreProgressBar(score, session_id, symptom, {
+        'dblclick': (event) => { 
+          Forms.setSessionSymptomScore(session_id, symptom, score); 
+        }
+      });
+    }
+
+    _makeSessionSymptomScoreButton(session_id, symptom) {
+      return UI.makeSessionSymptomScoreButton(session_id, symptom, {
+        'click': (event) => {
+          Forms.setSessionSymptomScore(session_id, symptom);
+        }
+      });
+    }
+
+    _makeProtocolButton(sessionId) {
+      let self = this;
+      return UI.makeProtocolButton(sessionId, {
+        'click':  function(event) {
+          self.renderSessionProtocol(event);
+        }
+      });
+    }
+
+    _makeProtocolColumns(session) {
+      let self = this;
+
+      var _getProtocolSites = function(type) {
+        return session.protocol.filter(d => {return type == d.type}).map(d => { return d.site; });
+      }
+
+      return [
+        $('<td>').append(_getProtocolSites('ILF')),
+        $('<td>').append(_getProtocolSites('AlphaTheta')),
+        $('<td>').append(_getProtocolSites('Frequency Band')),
+        $('<td>').append(_getProtocolSites('Synchrony')),
+        $('<td>').addClass('text-center').append(
+          self._makeProtocolButton(session.id)
+        )
+      ];
     }
 
     buildDataset(results) {
@@ -226,19 +273,7 @@
         .then((protocol) => {
           self.elements.$protocolContainer.empty()
             .append(
-              protocol.map(d => {
-                return $('<div>').addClass('card mt-3').append(
-                  $('<div>').addClass('card-body').append(
-                    $('<h5>').addClass('card-title').append(d.site),
-                    $('<h6>').addClass('card-subtitle mb-2 text-body-secondary').append(d.type),
-                    $('<div>').append(d.duration + ' minutes'),
-                    ...d.settings.map(i => {
-                      let type = i.type ?? '';
-                      return $('<div>').append(type + ' ' + i.frequency + ' ' + i.unit);
-                    })
-                  )
-                );
-              })
+              protocol.map(UI.makeProtocolCard)
             );
         });
     }
@@ -277,7 +312,7 @@
                 $('<td>').append('Good Week'),
                 $('<td>').append(''),
                 ...symptomsNames.map(d => {
-                  let icon = UI.formatScore(self, dataset.baselines.good.scores[d]);
+                  let icon = self._makeSymptomScoreProgressBar(dataset.baselines.good.scores[d]);
                   return $('<td>').append(icon);
                 })
               )
@@ -288,7 +323,7 @@
                 $('<td>').append('Bad Week'),
                 $('<td>').append(''),
                 ...symptomsNames.map(d => {
-                  let icon = UI.formatScore(self, dataset.baselines.bad.scores[d]);
+                  let icon = self._makeSymptomScoreProgressBar(dataset.baselines.bad.scores[d]);
                   return $('<td>').append(icon);
                 })
               )
@@ -299,7 +334,7 @@
                 $('<td>').append('Usual Week'),
                 $('<td>').append(''),
                 ...symptomsNames.map(d => {
-                  let icon = UI.formatScore(self, dataset.baselines.usual.scores[d]);
+                  let icon = self._makeSymptomScoreProgressBar(dataset.baselines.usual.scores[d]);
                   return $('<td>').append(icon);
                 })
               )
@@ -318,8 +353,8 @@
                   ),
                   $('<td>').addClass('text-center').append(session.number),
                   ...symptomsNames.map(d => {
-                    let icon = UI.formatScore(self, session.scores[d], session.id, dataset.symptoms[d]) ?? 
-                               UI.makeSessionSymptomScoreButton(self, session.id, dataset.symptoms[d]);
+                    let icon = self._makeSymptomScoreProgressBar(session.scores[d], session.id, dataset.symptoms[d]) ?? 
+                               self._makeSessionSymptomScoreButton(session.id, dataset.symptoms[d]);
                     return $('<td>').append(icon);
                   })
                 )
@@ -345,7 +380,7 @@
           for (let session_key in dataset.sessions) {
             rows.push(
               $('<tr>').attr('session-id', dataset.sessions[session_key].id).append(
-                ...UI.makeProtocolColumns(self, dataset.sessions[session_key])
+                ...self._makeProtocolColumns(dataset.sessions[session_key])
               )
             );
           }
