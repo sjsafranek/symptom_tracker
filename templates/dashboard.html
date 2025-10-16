@@ -359,15 +359,22 @@
 
     renderTrackingTable: function(dataset) {
 
-      let symptomsNames = Object.values(dataset.symptoms)
-                            .filter(d => d.is_active)
-                            .map(d => d.name);
+      let symptomsNames = Object.values(dataset.symptoms).filter(d => d.is_active).map(d => d.name);
+
+      var _getSymptomByName = function(name) {
+        return Object.values(dataset.symptoms).filter(d => d.name == name)[0];
+      }
 
       let $headers = $('<tr>').append(
         $('<th>').append('date'),
         $('<th>').addClass('text-center').append('number'),
-        ...symptomsNames.map(d => {
-          return $('<th>').addClass('column-symptom').append(d)
+        ...symptomsNames.map(name => {
+          return $('<th>').addClass('column-symptom')
+                          .append(name)
+                          .on('contextmenu', (event) => { 
+                            event.preventDefault();
+                            App.disableSymptom(_getSymptomByName(name));
+                          });
         })
       );
 
@@ -412,9 +419,15 @@
 
             for (let key in dataset.sessions) {
               let session = dataset.sessions[key];
+
+              let has_scores = 0 != Object.values(session.scores).filter(d => d).length;
               rows.push(
                 $('<tr>').attr('session-id', session.id).append(
-                  $('<td>').append(session.date),
+                  $('<td>').append(
+                    session.date
+
+                    // TODO !has_scores ? mark as no show
+                  ),
                   $('<td>').addClass('text-center').append(session.number),
                   ...symptomsNames.map(d => {
                     let icon = UI.formatScore(session.scores[d], session.id, dataset.symptoms[d]) ?? 
@@ -443,8 +456,6 @@
           for (let session_key in dataset.sessions) {
             rows.push(
               $('<tr>').attr('session-id', dataset.sessions[session_key].id).append(
-                // $('<td>').append(date),
-                // $('<td>').addClass('text-center').append(dataset.sessions[date].number),
                 ...UI.makeProtocolColumns(dataset.sessions[session_key])
               )
             );
@@ -453,6 +464,10 @@
         })()
       );
       UI.initDataTable(App.elements.$protocolTable);
+    },
+
+    disableSymptom: function(symptom) {
+      console.log('TODO :: disableSymptom', symptom);
     },
 
     setSessionSymptomScore: function(session_id, symptom) {

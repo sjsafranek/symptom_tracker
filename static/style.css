@@ -17,6 +17,7 @@ tr.highlight {
 }
 
 th.column-symptom {
+  cursor: pointer;  
   width: 125px !important;
 }
 
