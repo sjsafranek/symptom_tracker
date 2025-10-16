@@ -143,38 +143,57 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 
 <!-- Custom -->
-<script src="/static/api.js"></script>
-<script src="/static/app.js"></script>
+<!-- <script src="/static/api.js"></script> -->
+<!-- <script src="/static/app.js"></script> -->
 
+<script src="
+https://cdn.jsdelivr.net/npm/requirejs@2.3.7/require.min.js
+"></script>
 
 {% if therapists %}
 <script>
   
   document.addEventListener('DOMContentLoaded', () => {
 
-    let $therapistSelector = $("#therapist");
-    let $clientSelector = $("#client");
 
-    $therapistSelector.on('change', (event) => {
-      let therapist_id = $therapistSelector.val();
-      Api.fetchClientsByTherapist(therapist_id)
-        .then(clients => {
-          $clientSelector
-            .attr('disabled', false)
-            .show()
-            .empty()
-            .append('<option selected disabled>Select a Client</option>')
-            .append(
-              clients.map(client => {
-                return $('<option>', {value:client.id}).append(client.name);
-              })
-            );
-        });
+
+    requirejs.config({
+        baseUrl: '/static/lib/js',
+        paths: {
+            app: 'app',
+            ui: 'ui',
+            forms: 'forms',
+            api: 'api'
+        }
     });
 
-    $clientSelector.on('change', (event) => {
-      let client_id = $clientSelector.val();
-      window.location.href = `/dashboard/client/${client_id}`;
+    requirejs(['api'], function( api ) {
+
+      let $therapistSelector = $("#therapist");
+      let $clientSelector = $("#client");
+
+      $therapistSelector.on('change', (event) => {
+        let therapist_id = $therapistSelector.val();
+        Api.fetchClientsByTherapist(therapist_id)
+          .then(clients => {
+            $clientSelector
+              .attr('disabled', false)
+              .show()
+              .empty()
+              .append('<option selected disabled>Select a Client</option>')
+              .append(
+                clients.map(client => {
+                  return $('<option>', {value:client.id}).append(client.name);
+                })
+              );
+          });
+      });
+
+      $clientSelector.on('change', (event) => {
+        let client_id = $clientSelector.val();
+        window.location.href = `/dashboard/client/${client_id}`;
+      });
+
     });
 
   }, false);
@@ -187,15 +206,25 @@
 {% if client %}
 <script>
 
+    document.addEventListener('DOMContentLoaded', () => {
 
+        requirejs.config({
+            baseUrl: '/static/lib/js',
+            paths: {
+                app: 'app',
+                ui: 'ui',
+                forms: 'forms',
+                api: 'api'
+            }
+        });
 
-  document.addEventListener('DOMContentLoaded', () => {
+        requirejs(['api', 'forms', 'ui', 'app'], function( ) {
+            let app = new App('{{ client.id|escapejs }}');
+            app.init().render();
+            window.APP = app;
+        });
 
-    let app = new App('{{ client.id|escapejs }}');
-    app.init().render();
-    window.APP = app;
-
-  }, false);
+    }, false);
 
 </script>
 {% endif %}
