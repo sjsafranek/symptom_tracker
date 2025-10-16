@@ -1,0 +1,47 @@
+
+main {
+  padding-top: 80px;
+}
+
+.progress {
+  border-radius: 0px;
+}
+
+td {
+  vertical-align: middle;
+  text-align: center;
+}
+
+tr.highlight {
+    background-color: rgba(var(--dt-row-hover), 0.052) !important;
+}
+
+th.column-symptom {
+  cursor: pointer;  
+  width: 125px !important;
+}
+
+#canvas{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.btn-protocol {
+  cursor: pointer;  
+  color: var(--bs-link-color);  
+  text-decoration: none;
+}
+
+.btn-symptom-score {
+  cursor: pointer;  
+  width: 80% !important;
+  --bs-btn-padding-y: .25rem !important;
+  --bs-btn-padding-x: .5rem !important;
+  --bs-btn-font-size: .75rem !important;
+}
+
+.session-symptom-score {
+  cursor: pointer; 
+}
