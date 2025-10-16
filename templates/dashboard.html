@@ -10,7 +10,7 @@
 <link href="https://cdn.datatables.net/v/bs5/dt-2.3.4/datatables.min.css" rel="stylesheet" integrity="sha384-i0jVPhw/X00l5EPvMOBv0lcGYXlSQGOqNYpMK/406rxta9oBump0IZJIHzvtf3+H" crossorigin="anonymous">
 
 <!-- Custom -->
-<link href="/static/style.css" rel="stylesheet">
+<link href="/static/lib/css/style.css" rel="stylesheet">
 
 {% endblock %}
 
@@ -30,104 +30,97 @@
 
 {% if therapists %}
 
-  <div class="row mt-4">
-    <div class="col-4">
-      <strong>Therapist</strong>
-      <select class="form-select" aria-label="Select a Therapist" id="therapist">
-        <option selected disabled>Select a Therapist</option>
-        {% for therapist in therapists %}
-        <option value="{{ therapist.id }}">{{ therapist.user.get_full_name }}</option>
-        {% endfor %}
-      </select>
-    </div>   
-  </div>
-
-  <div class="row mt-4">
-    <div class="col-4">
-      <strong>Client</strong>
-      <select class="form-select" aria-label="Select a Client" id="client" disabled style="display:none;">
-        <option selected disabled>Select a Client</option>
-        {% for client in client %}
-        <option value="{{ client.id }}">{{ client.user.get_full_name }}</option>
-        {% endfor %}
-      </select>
+    <div class="row mt-4">
+        <div class="col-4">
+            <strong>Therapist</strong>
+            <select class="form-select" aria-label="Select a Therapist" id="therapist">
+                <option selected disabled>Select a Therapist</option>
+                {% for therapist in therapists %}
+                <option value="{{ therapist.id }}">{{ therapist.user.get_full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>   
     </div>
-  </div>
+
+    <div class="row mt-4">
+        <div class="col-4">
+            <strong>Client</strong>
+            <select class="form-select" aria-label="Select a Client" id="client" disabled style="display:none;">
+                <option selected disabled>Select a Client</option>
+                {% for client in client %}
+                <option value="{{ client.id }}">{{ client.user.get_full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
 
 {% endif %}
 
 
 {% if client %}
 
-  <div class="row mt-4">
-    <div class="col-12" id="tracking-container">
-      <div class="row">
-        <div class="col-8">
-          <table id="tracking" class="table table-bordered table-hover table-sm">
-          </table>
-          <button class='btn btn-sm btn-primary btn-add-session'>Add Session</button>
+    <div class="row mt-4">
+        <div class="col-12" id="tracking-container">
+            <div class="row">
+                <div class="col-8">
+                    <table id="tracking" class="table table-bordered table-hover table-sm"></table>
+                    <button class='btn btn-sm btn-primary btn-add-session'>Add Session</button>
+                </div>
+                <div class="col-4">
+                    <table id="protocols" class="table table-bordered table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <!-- <th class='text-center'>number</th> -->
+                                <th class='text-center'>ILF</th>
+                                <th class='text-center'>A/T</th>
+                                <th class='text-center'>Synch</th>
+                                <th class='text-center'>FreqBand</th>
+                                <th class='text-center'>protocol</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class='table-secondary'>
+                                <td>&nbsp;</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr class='table-secondary'>
+                                <td>&nbsp;</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr class='table-secondary'>
+                                <td>&nbsp;</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr class='table-secondary'>
+                                <td>&nbsp;</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12" id="protocol-container"></div>
+            </div>  
         </div>
-        <div class="col-4">
-          <table id="protocols" class="table table-bordered table-hover table-sm">
-            <thead>
-              <tr>
-                <!-- <th class='text-center'>number</th> -->
-                <th class='text-center'>ILF</th>
-                <th class='text-center'>A/T</th>
-                <th class='text-center'>Synch</th>
-                <th class='text-center'>FreqBand</th>
-                <th class='text-center'>protocol</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class='table-secondary'>
-                <td>&nbsp;</td>
-                <!-- <td></td> -->
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-              </tr>
-              <tr class='table-secondary'>
-                <td>&nbsp;</td>
-                <!-- <td></td> -->
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-              </tr>
-              <tr class='table-secondary'>
-                <td>&nbsp;</td>
-                <!-- <td></td> -->
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-              </tr>
-              <tr class='table-secondary'>
-                <td>&nbsp;</td>
-                <!-- <td></td> -->
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-12" id="protocol-container">
-        </div>
-      </div>  
     </div>
-  </div>
 
 {% endif %}
 
-  
-
 </div>
+
 
 {% endblock %}
 
@@ -142,61 +135,55 @@
 <!-- D3 -->
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 
-<!-- Custom -->
-<!-- <script src="/static/api.js"></script> -->
-<!-- <script src="/static/app.js"></script> -->
+<!-- RequireJS -->
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.7/require.min.js"></script>
 
-<script src="
-https://cdn.jsdelivr.net/npm/requirejs@2.3.7/require.min.js
-"></script>
 
 {% if therapists %}
 <script>
-  
-  document.addEventListener('DOMContentLoaded', () => {
+    
+    document.addEventListener('DOMContentLoaded', () => {
 
+        requirejs.config({
+            baseUrl: '/static/lib/js',
+            paths: {
+                app: 'app',
+                ui: 'ui',
+                forms: 'forms',
+                api: 'api'
+            }
+        });
 
+        requirejs(['api'], function( api ) {
 
-    requirejs.config({
-        baseUrl: '/static/lib/js',
-        paths: {
-            app: 'app',
-            ui: 'ui',
-            forms: 'forms',
-            api: 'api'
-        }
-    });
+            let $therapistSelector = $("#therapist");
+            let $clientSelector = $("#client");
 
-    requirejs(['api'], function( api ) {
+            $therapistSelector.on('change', (event) => {
+                let therapist_id = $therapistSelector.val();
+                Api.fetchClientsByTherapist(therapist_id)
+                    .then(clients => {
+                        $clientSelector
+                            .attr('disabled', false)
+                            .show()
+                            .empty()
+                            .append('<option selected disabled>Select a Client</option>')
+                            .append(
+                                clients.map(client => {
+                                    return $('<option>', {value:client.id}).append(client.name);
+                                })
+                            );
+                    });
+            });
 
-      let $therapistSelector = $("#therapist");
-      let $clientSelector = $("#client");
+            $clientSelector.on('change', (event) => {
+                let client_id = $clientSelector.val();
+                window.location.href = `/dashboard/client/${client_id}`;
+            });
 
-      $therapistSelector.on('change', (event) => {
-        let therapist_id = $therapistSelector.val();
-        Api.fetchClientsByTherapist(therapist_id)
-          .then(clients => {
-            $clientSelector
-              .attr('disabled', false)
-              .show()
-              .empty()
-              .append('<option selected disabled>Select a Client</option>')
-              .append(
-                clients.map(client => {
-                  return $('<option>', {value:client.id}).append(client.name);
-                })
-              );
-          });
-      });
+        });
 
-      $clientSelector.on('change', (event) => {
-        let client_id = $clientSelector.val();
-        window.location.href = `/dashboard/client/${client_id}`;
-      });
-
-    });
-
-  }, false);
+    }, false);
 
 </script>
 {% endif %}
