@@ -217,11 +217,19 @@ def do(api_request):
         return {'status': 'ok'}, 200
 
 
-    if 'disable_symptom':
+    if 'disable_symptom' == api_request.method:
         symptom_id = api_request.param('symptom_id')
         symptom = ClientSymptom.objects.filter(id=symptom_id).get()
         symptom.is_active = False
         symptom.save()
+        return {'status': 'ok'}, 200
+
+
+    if 'set_session_no_show' == api_request.method:
+        session_id = api_request.param('session_id')
+        session = ClientSession.objects.filter(id=session_id).get()
+        session.no_show = True
+        session.save()
         return {'status': 'ok'}, 200
 
 

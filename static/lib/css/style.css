@@ -34,6 +34,14 @@ th.column-symptom {
   text-decoration: none;
 }
 
+.btn-session {
+  cursor: pointer;
+}
+
+.btn-session:hover {
+  font-weight: 700; /* Equivalent to bold */
+}
+
 .btn-symptom-score {
   cursor: pointer;  
   width: 80% !important;

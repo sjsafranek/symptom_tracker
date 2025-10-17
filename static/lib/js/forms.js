@@ -85,6 +85,21 @@ const Forms = {
                     .catch(UI.displayError);
             }
         });
+    },
+
+    setSessionNoShow: function(session) {
+        Swal.fire({
+            title: `Do you want to mark '${session.date}' as a no show?`,
+            showCancelButton: true,
+            confirmButtonText: "Disable",
+            icon: "warning",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Api.setSessionNoShow(session.id)
+                    .then(Forms._reload)
+                    .catch(UI.displayError);
+            }
+        });        
     }
 
 }

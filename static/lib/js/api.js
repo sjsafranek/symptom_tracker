@@ -91,6 +91,15 @@ const Api = {
                 symptom_id: symptom_id
             }
         });
+    },
+
+    setSessionNoShow: function(session_id) {
+        return Api._do({
+            method: "set_session_no_show",
+            params: {
+                session_id: session_id
+            }
+        });
     }
 
 }

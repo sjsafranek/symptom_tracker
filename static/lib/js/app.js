@@ -188,26 +188,28 @@ class App {
                     for (let key in dataset.sessions) {
                         let session = dataset.sessions[key];
 
-                        let has_scores = 0 != Object.values(session.scores).filter(d => d).length;
                         rows.push(
                             $('<tr>').attr('session-id', session.id).append(
-                                $('<td>').append(
-                                    session.date
-
-                                    // TODO !has_scores ? mark as no show
-                                ),
+                                ((s)=>{
+                                    let has_scores = 0 != Object.values(s.scores).filter(d => d).length;
+                                    console.log(has_scores);
+                                    return $('<td>').addClass(!has_scores ? "btn-session" : "")
+                                        .append(s.date)
+                                        .on('dblclick', function(event) {
+                                            if (!has_scores) {
+                                                Forms.setSessionNoShow(s);
+                                            }
+                                        });
+                                })(session),
                                 $('<td>').addClass('text-center').append(session.number),
                                 ...symptomsNames.map(d => {
                                     let icon = self._makeSymptomScoreProgressBar(session.scores[d], session.id, dataset.symptoms[d]) ?? 
-                                                         self._makeSessionSymptomScoreButton(session.id, dataset.symptoms[d]);
+                                               self._makeSessionSymptomScoreButton(session.id, dataset.symptoms[d]);
                                     return $('<td>').append(icon);
                                 })
                             )
                         );
                     }
-
-                    // rows.push();
-                    // todo button to create session
 
                     return rows;
                 })()
