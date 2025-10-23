@@ -24,16 +24,105 @@ from .client_session import ClientSession
 #         )
 #
 
+'''
+Fp1
+Fp2
+F7
+F3
+Fz
+F4
+F8
+A1
+A2
+T3
+T4
+T5
+T6
+O1
+O2
+C3
+Cz
+C4
+P3
+Pz
+P4
+'''
 class BaseClientSessionProtocolSiteTrainingModality(models.Model):
     id = models.AutoField(primary_key=True)
     session = ForeignKey(ClientSession, null=False, on_delete=models.CASCADE)
     site = CharField(
             max_length=32,
             choices=[
-                ("Unknown", "Unknown")
+                ("Unknown", "Unknown"),
+                ("Fp1-Fp2", "Fp1-Fp2"),
+                ("T3-Fp1",  "T3-Fp1"),
+                ("T3-P3",   "T3-P3"),
+                ("T3-P4",   "T3-P4"),
+                ("T3-T4",   "T3-T4"),
+                ("T4-Fp2",  "T4-Fp2"),
+                ("T4-P4",   "T4-P4")
             ],
             default='Unknown'
         )
+
+    site1 = CharField(
+            max_length=32,
+            choices=[
+                ("Unknown", "Unknown"),
+                ("A1", "A1"),
+                ("A2", "A2"),
+                ("C3", "C3"),
+                ("C4", "C4"),
+                ("Cz", "Cz"),
+                ("F3", "F3"),
+                ("F4", "F4"),
+                ("F7", "F7"),
+                ("F8", "F8"),
+                ("Fp1", "Fp1"),
+                ("Fp2", "Fp2"),
+                ("Fz", "Fz"),
+                ("O1", "O1"),
+                ("O2", "O2"),
+                ("P3", "P3"),
+                ("P4", "P4"),
+                ("Pz", "Pz"),
+                ("T3", "T3"),
+                ("T4", "T4"),
+                ("T5", "T5"),
+                ("T6", "T6")
+            ],
+            default='Unknown'
+        )
+    
+    site2 = CharField(
+            max_length=32,
+            choices=[
+                ("Unknown", "Unknown"),
+                ("A1", "A1"),
+                ("A2", "A2"),
+                ("C3", "C3"),
+                ("C4", "C4"),
+                ("Cz", "Cz"),
+                ("F3", "F3"),
+                ("F4", "F4"),
+                ("F7", "F7"),
+                ("F8", "F8"),
+                ("Fp1", "Fp1"),
+                ("Fp2", "Fp2"),
+                ("Fz", "Fz"),
+                ("O1", "O1"),
+                ("O2", "O2"),
+                ("P3", "P3"),
+                ("P4", "P4"),
+                ("Pz", "Pz"),
+                ("T3", "T3"),
+                ("T4", "T4"),
+                ("T5", "T5"),
+                ("T6", "T6")
+            ],
+            default='Unknown'
+        )    
+
     duration_minutes = IntegerField(
             null=False,
             validators=[MinValueValidator(1), MaxValueValidator(120)]
@@ -58,7 +147,7 @@ class ClientSessionProtocolSiteTrainingILF(BaseClientSessionProtocolSiteTraining
             decimal_places=6, 
             default=0.000001, 
             null=True,
-            validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
+            validators=[MinValueValidator(0.000001), MaxValueValidator(100.0)]            
         )
 
     class Meta:
@@ -81,16 +170,16 @@ class ClientSessionProtocolSiteTrainingAlphaTheta(BaseClientSessionProtocolSiteT
     alpha_frequency_hertz = DecimalField(
             max_digits=11, 
             decimal_places=6, 
-            default=0.000001, 
+            default=0.01, 
             null=True,
-            validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
+            validators=[MinValueValidator(8.0), MaxValueValidator(13.0)]            
         )
     theta_frequency_hertz = DecimalField(
             max_digits=11, 
             decimal_places=6, 
-            default=0.000001, 
+            default=0.01, 
             null=True,
-            validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
+            validators=[MinValueValidator(3.5), MaxValueValidator(7.9)]            
         )
 
     class Meta:
@@ -118,9 +207,9 @@ class ClientSessionProtocolSiteTrainingFrequencyBand(BaseClientSessionProtocolSi
     frequency_hertz = DecimalField(
             max_digits=11, 
             decimal_places=6, 
-            default=0.000001, 
+            default=0.01, 
             null=True,
-            validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
+            validators=[MinValueValidator(0.0), MaxValueValidator(100.0)]            
         )
 
     class Meta:
@@ -143,9 +232,9 @@ class ClientSessionProtocolSiteTrainingSynchrony(BaseClientSessionProtocolSiteTr
     frequency_millihertz = DecimalField(
             max_digits=11, 
             decimal_places=6, 
-            default=0.000001, 
+            default=0.01, 
             null=True,
-            validators=[MinValueValidator(0.000001), MaxValueValidator(40000)]            
+            validators=[MinValueValidator(0.01), MaxValueValidator(0.05)]            
         )
 
     class Meta:

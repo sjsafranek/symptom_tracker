@@ -33,7 +33,7 @@ const UI = {
     makeProtocolCard: function(protocol) {
         return $('<div>').addClass('card mt-3').append(
             $('<div>').addClass('card-body').append(
-                $('<h5>').addClass('card-title').append(protocol.site),
+                $('<h5>').addClass('card-title').append(`${protocol.site1}-${protocol.site2}`),
                 $('<h6>').addClass('card-subtitle mb-2 text-body-secondary').append(protocol.type),
                 $('<div>').append(protocol.duration + ' minutes'),
                 ...protocol.settings.map(d => {

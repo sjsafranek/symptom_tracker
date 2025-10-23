@@ -20,10 +20,6 @@ from .models import ClientSession
 from .models import ClientSymptom
 from .models import ClientSessionSymptomScore
 from .utils import fetchProtocolBySessionId
-# from .models import ClientSessionProtocolSiteTrainingILF
-# from .models import ClientSessionProtocolSiteTrainingAlphaTheta
-# from .models import ClientSessionProtocolSiteTrainingFrequencyBand
-# from .models import ClientSessionProtocolSiteTrainingSynchrony
 
 
 @login_required(login_url='/accounts/login/')
@@ -89,6 +85,8 @@ def get_sessions_by_client(request, client_id):
                         {
                             'type': modality.type,
                             'site': modality.site,
+                            'site1': modality.site1,
+                            'site2': modality.site2,
                             'duration': modality.duration_minutes,
                             'order': modality.order,
                             'notes': modality.notes,
@@ -159,8 +157,6 @@ def api_handler(request):
         except IntegrityError as err:
             return JsonResponse({'status': 'error', 'error': str(err)}, status=400)
         except Exception as err:
-            print(err)
-            print(type(err))
             return JsonResponse({'status': 'error', 'error': str(err)}, status=500)            
     return JsonResponse({'status': 'error', 'error': 'Only POST requests allowed'}, status=405)
 

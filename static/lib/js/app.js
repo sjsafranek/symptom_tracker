@@ -47,7 +47,13 @@ class App {
         let self = this;
 
         var _getProtocolSites = function(type) {
-            return session.protocol.filter(d => {return type == d.type}).map(d => { return d.site; });
+            return session.protocol
+                            .filter(d => {return type == d.type})
+                            .map(d => { 
+                                console.log(d);
+                                return `${d.site1}-${d.site2}`;
+                                // return d.site; 
+                            });
         }
 
         return [
@@ -96,16 +102,16 @@ class App {
         // 
         let sessions = results[1];
         dataset.sessions = Object.fromEntries(
-            sessions.filter(d => !d.no_show)
-                            .map(session => {
-                                // format scores for easier lookup
-                                session.scores = Object.fromEntries(session.symptom_scores.map(symptom => [symptom.name, symptom.score]));
+            //sessions.filter(d => !d.no_show)
+            sessions.map(session => {
+                // format scores for easier lookup
+                session.scores = Object.fromEntries(session.symptom_scores.map(symptom => [symptom.name, symptom.score]));
 
-                                // This allows for alphanumeric sorting 
-                                // and handles multiple sessions on the same day
-                                let key = `${session.date}_${session.id}`;    
-                                return [key, session];
-                            })
+                // This allows for alphanumeric sorting 
+                // and handles multiple sessions on the same day
+                let key = `${session.date}_${session.id}`;    
+                return [key, session];
+            })
         );
 
         return dataset;
@@ -187,22 +193,21 @@ class App {
 
                     for (let key in dataset.sessions) {
                         let session = dataset.sessions[key];
-
                         rows.push(
                             $('<tr>').attr('session-id', session.id).append(
                                 ((s)=>{
                                     let has_scores = 0 != Object.values(s.scores).filter(d => d).length;
-                                    console.log(has_scores);
                                     return $('<td>').addClass(!has_scores ? "btn-session" : "")
                                         .append(s.date)
                                         .on('dblclick', function(event) {
-                                            if (!has_scores) {
+                                            if (!has_scores && !s.no_show) {
                                                 Forms.setSessionNoShow(s);
                                             }
                                         });
                                 })(session),
-                                $('<td>').addClass('text-center').append(session.number),
+                                $('<td>').addClass('text-center').append(session.no_show ? "No Show": session.number),
                                 ...symptomsNames.map(d => {
+                                    if (session.no_show) return $('<td>');
                                     let icon = self._makeSymptomScoreProgressBar(session.scores[d], session.id, dataset.symptoms[d]) ?? 
                                                self._makeSessionSymptomScoreButton(session.id, dataset.symptoms[d]);
                                     return $('<td>').append(icon);
@@ -299,11 +304,18 @@ class App {
         });
     }
 
-    render() {
+    render(options) {
         let self = this;
+        options = options || {include_no_show: false};
         return Promise.all([
             Api.fetchSymptomsByClient(this._clientID),
             Api.fetchSessionsByClient(this._clientID)
+                .then((results) => {
+                    if (options.include_no_show) {
+                        return results;
+                    }
+                    return results.filter(d => !d.no_show);
+                })
         ])
         .then(self.buildDataset)
         .then((dataset) => {

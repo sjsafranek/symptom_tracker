@@ -108,4 +108,23 @@ for clientSymptom in clientSymptoms:
 	score.save()
 
 
+
+
+
+
+
+
+
+
+symptom_categories [
+	SymptomCategory(name = 'scream'),
+	SymptomCategory(name = 'shout'),
+	SymptomCategory(name = 'freakout')
+]
+for symptomCategory in symptomCategories:
+	symptomCategory.save()
+
+
+
+
 "
