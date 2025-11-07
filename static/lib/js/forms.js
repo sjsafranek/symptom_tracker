@@ -10,7 +10,7 @@ const Forms = {
     },
 
     _getMinSessionDate: function(days) {
-        let min = UI._getMinSessionDateTime();
+        let min = Forms._getMinSessionDateTime();
         return min.toISOString().slice(0, 10);
     },
 

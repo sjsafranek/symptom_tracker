@@ -186,3 +186,11 @@ LOGGING = {
         }
     }
 }
+
+
+
+# Custom settings
+try:
+    from .config import *
+except:
+    pass
