@@ -13,7 +13,9 @@ class App {
 
     init() {
         let self = this;
-        $('.btn-add-session').on('click', Forms.createClientSession);
+        $('.btn-add-session').on('click', (event) => {
+            Forms.createClientSession(this._clientID);
+        });
 
         return this;
     }
