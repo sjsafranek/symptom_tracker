@@ -18,7 +18,7 @@ const Forms = {
         window.location.reload();
     },
 
-    createClientSession: function() {
+    createClientSession: function(client_id) {
         return Swal.fire({
             title: `Add Session`,
             showCancelButton: true,
@@ -33,7 +33,7 @@ const Forms = {
         })
         .then((result) => {
             if (result.isConfirmed) {
-                Api.createClientSession(self._clientID, result.value)
+                Api.createClientSession(client_id, result.value)
                     .then(Forms._reload)
                     .catch(UI.displayError);
             }
