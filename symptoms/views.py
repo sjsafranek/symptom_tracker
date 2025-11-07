@@ -204,6 +204,7 @@ def do(api_request):
         date = datetime.strptime(date_string, format_string).date()
 
         max_date = ClientSession.objects.filter(client=client).aggregate(Max('date'))['date__max']
+        max_date = max_date or date.today()
         if (date < max_date):
             return {'status': 'error', 'error': 'Max session date'}, 400
 
