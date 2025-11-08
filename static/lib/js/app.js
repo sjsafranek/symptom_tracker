@@ -17,6 +17,11 @@ class App {
             Forms.createClientSession(this._clientID);
         });
 
+        // $('.btn-add-session-protocol').on('click', (event) => {
+        //     debugger;
+        //     // Forms.addSessionProtocolSetting(this._clientID,)
+        // });
+
         return this;
     }
 
@@ -36,10 +41,10 @@ class App {
         });
     }
 
-    _makeProtocolButton(sessionId) {
+    _makeProtocolButtonView(sessionId) {
         let self = this;
-        return UI.makeProtocolButton(sessionId, {
-            'click':    function(event) {
+        return UI.makeProtocolButton(sessionId, 'View', {
+            'click': function(event) {
                 self.renderSessionProtocol(event);
             }
         });
@@ -64,7 +69,14 @@ class App {
             $('<td>').append(_getProtocolSites('Frequency Band')),
             $('<td>').append(_getProtocolSites('Synchrony')),
             $('<td>').addClass('text-center').append(
-                self._makeProtocolButton(session.id)
+                UI.makeProtocolButton(session, 'Add', {
+                    'click': function(event) {
+                        Forms.addSessionProtocolSetting(event);
+                    }
+                })
+            ),
+            $('<td>').addClass('text-center').append(
+                self._makeProtocolButtonView(session.id)
             )
         ];
     }

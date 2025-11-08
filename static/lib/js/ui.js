@@ -22,11 +22,11 @@ const UI = {
             .on(listeners);
     },
 
-    makeProtocolButton: function(sessionId, listeners) {
+    makeProtocolButton: function(sessionId, label, listeners) {
             return $('<span>')
                 .addClass('btn-protocol')
                 .data('session-id', sessionId)
-                .append('View')
+                .append(label)
                 .on(listeners);
     },
 

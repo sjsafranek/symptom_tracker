@@ -229,5 +229,9 @@ def do(api_request):
         session.save()
         return {'status': 'ok'}, 200
 
+    if 'add_protocol_setting':
+        session_id = api_request.param('session_id')
+        return {'status': 'ok'}, 200
+        
 
     return {'status': 'error', 'error': 'Method not found'}, 404

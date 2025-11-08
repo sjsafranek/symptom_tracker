@@ -100,6 +100,16 @@ const Api = {
                 session_id: session_id
             }
         });
+    },
+
+    addSessionProtocolSetting: function(session_id, settings) {
+        return Api._do({
+            method: "add_protocol_setting",
+            params: {
+                session_id: session_id,
+                settings: settings
+            }
+        });
     }
 
 }
