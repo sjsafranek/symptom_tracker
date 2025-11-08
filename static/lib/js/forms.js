@@ -134,19 +134,28 @@ const Forms = {
     },
 
     _getProtocolSettings: function(modality) {
+
+        function generateModalityFrequencySetting(options) {
+            return {
+                ...options,
+                input: 'number',
+                animation: false,
+                cancelButtonText: 'Back',
+                currentProgressStep: 4
+            }
+        }
+
         switch(modality) {
             case "AlphaTheta":
                 return [
-                    {
+                    generateModalityFrequencySetting({
                         title: 'Alpha Frequency',
-                        input: 'number',
                         inputAttributes: {
                             min: 8.0,
                             max: 13.0,
                             step: 0.000001
                         },
                         inputPlaceholder: "hertz",
-                        currentProgressStep: 4,
                         preConfirm: (value) => {
                             return {
                                 type: "frequency_alpha",
@@ -154,17 +163,15 @@ const Forms = {
                                 value: value
                             }
                         }                        
-                    },
-                    {
+                    }),
+                    generateModalityFrequencySetting({
                         title: 'Theta Frequency',
-                        input: 'number',
                         inputAttributes: {
                             min: 3.5,
                             max: 7.9,
                             step: 0.000001
                         },                        
                         inputPlaceholder: "hertz",
-                        currentProgressStep: 4,
                         preConfirm: (value) => {
                             return {
                                 type: "frequency_theta",
@@ -172,20 +179,18 @@ const Forms = {
                                 value: value
                             }
                         }
-                    }
+                    })
                 ];
             case "ILF":
                 return [
-                    {
+                    generateModalityFrequencySetting({
                         title: 'ILF Frequency',
-                        input: 'number',
                         inputAttributes: {
                             min: 0.000001,
                             max: 100.0,
                             step: 0.000001
-                        },                        
+                        },
                         inputPlaceholder: "hertz",
-                        currentProgressStep: 4,
                         preConfirm: (value) => {
                             return {
                                 type: "frequency",
@@ -193,20 +198,18 @@ const Forms = {
                                 value: value
                             }
                         }
-                    }
+                    })
                 ];
             case "FrequencyBand":
                 return [
-                    {
+                    generateModalityFrequencySetting({
                         title: 'FrequencyBand Frequency',
-                        input: 'number',
                         inputAttributes: {
                             min: 0.000001,
                             max: 100,
                             step: 0.000001
                         },                        
                         inputPlaceholder: "hertz",
-                        currentProgressStep: 4,
                         preConfirm: (value) => {
                             return {
                                 type: "frequency",
@@ -214,20 +217,18 @@ const Forms = {
                                 value: value
                             }
                         }
-                    }
+                    })
                 ];
             case "Synchrony":
                 return [
-                    {
+                    generateModalityFrequencySetting({
                         title: 'Synchrony Frequency',
-                        input: 'number',
                         inputAttributes: {
                             min: 0.01,
                             max: 0.05,
                             step: 0.000001
                         },                        
                         inputPlaceholder: "hertz",
-                        currentProgressStep: 4,
                         preConfirm: (value) => {
                             return {
                                 type: "frequency",
@@ -235,7 +236,7 @@ const Forms = {
                                 value: value
                             }
                         }
-                    }
+                    })
                 ];
             default:
                 return [];
@@ -251,6 +252,7 @@ const Forms = {
             showCloseButton: true,
             inputAttributes: { required: true },
             confirmButtonText: 'Next',
+            reverseButtons: true,
             // optional classes to avoid backdrop blinking between steps
             showClass: { backdrop: 'swal2-noanimation' },
             hideClass: { backdrop: 'swal2-noanimation' }
@@ -291,6 +293,7 @@ const Forms = {
                     inputPlaceholder: 'minutes',
                     showCancelButton: true,
                     cancelButtonText: 'Back',
+                    animation: false,
                     currentProgressStep: 1,
                     preConfirm: (value) => {
                         return {
@@ -306,6 +309,7 @@ const Forms = {
                     inputPlaceholder: 'Select an site',
                     showCancelButton: true,
                     cancelButtonText: 'Back',
+                    animation: false,
                     currentProgressStep: 2,
                     preConfirm: (value) => {
                         return {
@@ -321,7 +325,8 @@ const Forms = {
                     inputPlaceholder: 'Select an site',
                     showCancelButton: true,
                     cancelButtonText: 'Back',
-                    currentProgressStep: 3.
+                    animation: false,
+                    currentProgressStep: 3,
                     preConfirm: (value) => {
                         return {
                             type: "site2",
@@ -329,13 +334,14 @@ const Forms = {
                         }
                     }
                 },
-                ...self._getProtocolSettings(data["0"].value),
+                ...self._getProtocolSettings(data["0"].value && data["0"].value.value),
                 {
                     title: 'Notes',
                     input: 'text',
                     inputPlaceholder: 'notes',
                     showCancelButton: true,
                     cancelButtonText: 'Back',
+                    animation: false,
                     currentProgressStep: 5,
                     confirmButtonText: 'OK',
                     preConfirm: (value) => {
@@ -346,6 +352,7 @@ const Forms = {
                     }
                 }
             ];
+
             if (idx >= steps.length) return null;
             return steps[idx];
         }
@@ -367,8 +374,15 @@ const Forms = {
 
             if (100 != idx) {
                 let settings = {};
-                debugger; 
-                //Api.addSessionProtocolSetting(session.id, settings);
+                let values = Object.values(data).map(d => {return d.value})
+                for (let i=0; i<values.length; i++) {
+                    let k = values[i].type;
+                    let v = values[i].value;
+                    settings[k] = v;
+                }
+                Api.addSessionProtocolSetting(session.id, settings)
+                    .then(Forms._reload)
+                    .catch(UI.displayError);
             }
 
         })();

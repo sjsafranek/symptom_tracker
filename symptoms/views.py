@@ -231,6 +231,15 @@ def do(api_request):
 
     if 'add_protocol_setting':
         session_id = api_request.param('session_id')
+        settings = api_request.param('settings')
+        session = ClientSession.objects.filter(id=session_id).get()
+        print(settings)
+
+        # session.clientsessionprotocolsitetrainingalphatheta_set 
+        # session.clientsessionprotocolsitetrainingfrequencyband_set 
+        # session.clientsessionprotocolsitetrainingilf_set 
+        # session.clientsessionprotocolsitetrainingsynchrony_set
+        
         return {'status': 'ok'}, 200
         
 
