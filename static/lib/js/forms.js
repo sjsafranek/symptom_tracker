@@ -133,8 +133,117 @@ const Forms = {
         'Synchrony': 'Synchrony'
     },
 
+    _getProtocolSettings: function(modality) {
+        switch(modality) {
+            case "AlphaTheta":
+                return [
+                    {
+                        title: 'Alpha Frequency',
+                        input: 'number',
+                        inputAttributes: {
+                            min: 8.0,
+                            max: 13.0,
+                            step: 0.000001
+                        },
+                        inputPlaceholder: "hertz",
+                        currentProgressStep: 4,
+                        preConfirm: (value) => {
+                            return {
+                                type: "frequency_alpha",
+                                unit: "hertz",
+                                value: value
+                            }
+                        }                        
+                    },
+                    {
+                        title: 'Theta Frequency',
+                        input: 'number',
+                        inputAttributes: {
+                            min: 3.5,
+                            max: 7.9,
+                            step: 0.000001
+                        },                        
+                        inputPlaceholder: "hertz",
+                        currentProgressStep: 4,
+                        preConfirm: (value) => {
+                            return {
+                                type: "frequency_theta",
+                                unit: "hertz",
+                                value: value
+                            }
+                        }
+                    }
+                ];
+            case "ILF":
+                return [
+                    {
+                        title: 'ILF Frequency',
+                        input: 'number',
+                        inputAttributes: {
+                            min: 0.000001,
+                            max: 100.0,
+                            step: 0.000001
+                        },                        
+                        inputPlaceholder: "hertz",
+                        currentProgressStep: 4,
+                        preConfirm: (value) => {
+                            return {
+                                type: "frequency",
+                                unit: "millihertz",
+                                value: value
+                            }
+                        }
+                    }
+                ];
+            case "FrequencyBand":
+                return [
+                    {
+                        title: 'FrequencyBand Frequency',
+                        input: 'number',
+                        inputAttributes: {
+                            min: 0.000001,
+                            max: 100,
+                            step: 0.000001
+                        },                        
+                        inputPlaceholder: "hertz",
+                        currentProgressStep: 4,
+                        preConfirm: (value) => {
+                            return {
+                                type: "frequency",
+                                unit: "hertz",
+                                value: value
+                            }
+                        }
+                    }
+                ];
+            case "Synchrony":
+                return [
+                    {
+                        title: 'Synchrony Frequency',
+                        input: 'number',
+                        inputAttributes: {
+                            min: 0.01,
+                            max: 0.05,
+                            step: 0.000001
+                        },                        
+                        inputPlaceholder: "hertz",
+                        currentProgressStep: 4,
+                        preConfirm: (value) => {
+                            return {
+                                type: "frequency",
+                                unit: "millihertz",
+                                value: value
+                            }
+                        }
+                    }
+                ];
+            default:
+                return [];
+        }
+    },
+
     addSessionProtocolSetting: function(session) {
-        let session_id = session.id;
+        let self = this;
 
         const steps = ['1', '2', '3', '4', '5', '6']
         const Queue = Swal.mixin({
@@ -152,7 +261,8 @@ const Forms = {
             "1": {isConfirmed: false, value: null},
             "2": {isConfirmed: false, value: null},
             "3": {isConfirmed: false, value: null},
-            "4": {isConfirmed: false, value: null}
+            "4": {isConfirmed: false, value: null},
+            "5": {isConfirmed: false, value: null}
         };
 
         function getStepByIndex(idx) {
@@ -163,6 +273,12 @@ const Forms = {
                     inputOptions: Forms._modalityOptions,
                     inputPlaceholder: 'Select an modality',
                     currentProgressStep: 0,
+                    preConfirm: (value) => {
+                        return {
+                            type: "modality",
+                            value: value
+                        }
+                    }
                 },
                 {
                     title: 'Duration',
@@ -175,7 +291,13 @@ const Forms = {
                     inputPlaceholder: 'minutes',
                     showCancelButton: true,
                     cancelButtonText: 'Back',
-                    currentProgressStep: 1
+                    currentProgressStep: 1,
+                    preConfirm: (value) => {
+                        return {
+                            type: "duration",
+                            value: value
+                        }
+                    }
                 },
                 {
                     title: 'Select a site',
@@ -184,7 +306,13 @@ const Forms = {
                     inputPlaceholder: 'Select an site',
                     showCancelButton: true,
                     cancelButtonText: 'Back',
-                    currentProgressStep: 2
+                    currentProgressStep: 2,
+                    preConfirm: (value) => {
+                        return {
+                            type: "site1",
+                            value: value
+                        }
+                    }
                 },
                 {
                     title: 'Select a site',
@@ -193,17 +321,15 @@ const Forms = {
                     inputPlaceholder: 'Select an site',
                     showCancelButton: true,
                     cancelButtonText: 'Back',
-                    currentProgressStep: 3
+                    currentProgressStep: 3.
+                    preConfirm: (value) => {
+                        return {
+                            type: "site2",
+                            value: value
+                        }
+                    }
                 },
-                "AlphaTheta" != data["0"].value ? 
-                    {
-                        title: 'Not AlphaTheta',
-                        currentProgressStep: 4
-                    } : 
-                    {
-                        title: 'AlphaTheta',
-                        currentProgressStep: 4
-                    },
+                ...self._getProtocolSettings(data["0"].value),
                 {
                     title: 'Notes',
                     input: 'text',
@@ -211,7 +337,13 @@ const Forms = {
                     showCancelButton: true,
                     cancelButtonText: 'Back',
                     currentProgressStep: 5,
-                    confirmButtonText: 'OK'
+                    confirmButtonText: 'OK',
+                    preConfirm: (value) => {
+                        return {
+                            type: "notes",
+                            value: value
+                        }
+                    }
                 }
             ];
             if (idx >= steps.length) return null;
@@ -233,8 +365,10 @@ const Forms = {
                 step = getStepByIndex(idx);
             }
 
-            if (data["4"].isConfirmed) {
-                debugger;
+            if (100 != idx) {
+                let settings = {};
+                debugger; 
+                //Api.addSessionProtocolSetting(session.id, settings);
             }
 
         })();
